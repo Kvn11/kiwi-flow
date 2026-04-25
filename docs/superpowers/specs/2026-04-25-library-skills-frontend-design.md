@@ -128,16 +128,13 @@ Mutation failures bubble through TanStack Query's default error path; the next r
 
 ## Testing
 
-Unit tests under `frontend/tests/unit/`, Vitest + `@/` alias (mirrors existing `tests/unit/` layout):
+Unit tests under `frontend/tests/unit/`, Vitest + `@/` alias (mirrors existing `tests/unit/` layout). The Vitest config (`frontend/vitest.config.ts`) only includes `**/*.test.ts` (no `.tsx`), and the project has no `@testing-library/react` / DOM env — so tests are restricted to pure logic that doesn't render React.
 
 - `tests/unit/core/library-skills/api.test.ts`
   - `loadLibrarySkills` parses `{skills: [...]}` shape
   - `enableLibrarySkill` issues a `PUT` to `/api/library-skills/{name}` with `{enabled}` body
-- `tests/unit/core/library-skills/hooks.test.ts`
-  - `useLibrarySkills` returns empty array while loading
-  - `useEnableLibrarySkill` invalidates the `["library-skills"]` query on success
 
-No component test for `LibrarySkillSettingsPage` — this matches existing coverage for `SkillSettingsPage` (also untested at the component layer).
+No hooks test, no component test. Both would require adding `@testing-library/react` + a DOM env (jsdom/happy-dom), which the project doesn't currently use. This mirrors existing coverage: `core/skills/` has zero tests today, and the new module gets one focused fetch-layer test rather than zero. Adding hook/component infrastructure is out of scope for this v1 mirror.
 
 No E2E for v1.
 
