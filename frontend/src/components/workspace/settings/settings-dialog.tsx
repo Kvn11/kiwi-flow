@@ -2,8 +2,9 @@
 
 import {
   BellIcon,
-  InfoIcon,
   BrainIcon,
+  InfoIcon,
+  LibraryIcon,
   PaletteIcon,
   SparklesIcon,
   WrenchIcon,
@@ -19,6 +20,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AboutSettingsPage } from "@/components/workspace/settings/about-settings-page";
 import { AppearanceSettingsPage } from "@/components/workspace/settings/appearance-settings-page";
+import { LibrarySkillSettingsPage } from "@/components/workspace/settings/library-skill-settings-page";
 import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
 import { NotificationSettingsPage } from "@/components/workspace/settings/notification-settings-page";
 import { SkillSettingsPage } from "@/components/workspace/settings/skill-settings-page";
@@ -31,6 +33,7 @@ type SettingsSection =
   | "memory"
   | "tools"
   | "skills"
+  | "library-skills"
   | "notification"
   | "about";
 
@@ -71,6 +74,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
       },
       { id: "tools", label: t.settings.sections.tools, icon: WrenchIcon },
       { id: "skills", label: t.settings.sections.skills, icon: SparklesIcon },
+      {
+        id: "library-skills",
+        label: t.settings.sections.librarySkills,
+        icon: LibraryIcon,
+      },
       { id: "about", label: t.settings.sections.about, icon: InfoIcon },
     ],
     [
@@ -78,6 +86,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
       t.settings.sections.memory,
       t.settings.sections.tools,
       t.settings.sections.skills,
+      t.settings.sections.librarySkills,
       t.settings.sections.notification,
       t.settings.sections.about,
     ],
@@ -132,6 +141,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
                   onClose={() => props.onOpenChange?.(false)}
                 />
               )}
+              {activeSection === "library-skills" && <LibrarySkillSettingsPage />}
               {activeSection === "notification" && <NotificationSettingsPage />}
               {activeSection === "about" && <AboutSettingsPage />}
             </div>
