@@ -554,7 +554,7 @@ EOF
 
 ### Step 1: Extend the section union and import the icon + page
 
-- [ ] Edit `frontend/src/components/workspace/settings/settings-dialog.tsx`. In the `lucide-react` import (currently lines 3-10), add `LibraryIcon` (alphabetical position is between `InfoIcon` and `BrainIcon`'s neighbors — place it where it keeps order). The resulting import block:
+- [ ] Edit `frontend/src/components/workspace/settings/settings-dialog.tsx`. In the `lucide-react` import (currently lines 3-10), add `LibraryIcon` and normalize the named imports to alphabetical order (the project's convention per `frontend/CLAUDE.md`; the current block is not strictly sorted). Resulting import block:
 
 ```ts
 import {
