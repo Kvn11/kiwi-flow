@@ -95,7 +95,9 @@ test("enableLibrarySkill issues a PUT to the skill endpoint with the enabled fla
   expect(url).toMatch(/\/api\/library-skills\/alpha$/);
   expect(init?.method).toBe("PUT");
   expect(init?.headers).toMatchObject({ "Content-Type": "application/json" });
-  expect(JSON.parse(String(init?.body))).toEqual({ enabled: false });
+  const body = init?.body;
+  expect(typeof body).toBe("string");
+  expect(JSON.parse(body as string)).toEqual({ enabled: false });
 });
 ```
 
