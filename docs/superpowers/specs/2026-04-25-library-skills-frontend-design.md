@@ -56,7 +56,7 @@ A sibling folder under `core/` (`core/library-skills/` next to `core/skills/`) m
 
 | Path | Purpose |
 |---|---|
-| `frontend/src/core/library-skills/type.ts` | `LibrarySkill` type (`name`, `description`, `license`, `enabled`, `path`) |
+| `frontend/src/core/library-skills/type.ts` | `LibrarySkill` type (`name`, `description`, `license`, `enabled`, `path`). `path` is carried for fidelity to the backend response shape; the UI does not render it (see Non-goals). |
 | `frontend/src/core/library-skills/api.ts` | `loadLibrarySkills()`, `enableLibrarySkill(name, enabled)` |
 | `frontend/src/core/library-skills/hooks.ts` | `useLibrarySkills()`, `useEnableLibrarySkill()` |
 | `frontend/src/core/library-skills/index.ts` | barrel re-export |
@@ -66,8 +66,8 @@ A sibling folder under `core/` (`core/library-skills/` next to `core/skills/`) m
 
 | Path | Change |
 |---|---|
-| `frontend/src/components/workspace/settings/settings-dialog.tsx` | Add `"library-skills"` to `SettingsSection` union, add nav entry with `LibraryIcon` from `lucide-react`, render `<LibrarySkillSettingsPage />` |
-| `frontend/src/core/i18n/locales/types.ts` | Add `librarySkills` slot under `settings.sections` and a top-level `settings.librarySkills` block (`title`, `description`, `emptyTitle`, `emptyDescription`) |
+| `frontend/src/components/workspace/settings/settings-dialog.tsx` | Add `"library-skills"` to `SettingsSection` union, add nav entry with `LibraryIcon` from `lucide-react`, render `<LibrarySkillSettingsPage />`, and add `t.settings.sections.librarySkills` to the `useMemo` dependency array so the sections list refreshes on locale changes |
+| `frontend/src/core/i18n/locales/types.ts` | Add `librarySkills` slot under `settings.sections` (camelCase key, paired with the hyphenated `"library-skills"` id — same naming asymmetry as existing entries) and a top-level `settings.librarySkills` block (`title`, `description`, `emptyTitle`, `emptyDescription`) |
 | `frontend/src/core/i18n/locales/en-US.ts` | English copy |
 | `frontend/src/core/i18n/locales/zh-CN.ts` | Chinese copy |
 
@@ -91,7 +91,13 @@ export function LibrarySkillSettingsPage() {
       title={t.settings.librarySkills.title}
       description={t.settings.librarySkills.description}
     >
-      {isLoading ? <Loading/> : error ? <Error/> : <LibrarySkillsList skills={skills}/>}
+      {isLoading ? (
+        <div className="text-muted-foreground text-sm">{t.common.loading}</div>
+      ) : error ? (
+        <div>Error: {error.message}</div>
+      ) : (
+        <LibrarySkillsList skills={skills}/>
+      )}
     </SettingsSection>
   );
 }
@@ -130,6 +136,8 @@ Unit tests under `frontend/tests/unit/`, Vitest + `@/` alias (mirrors existing `
 - `tests/unit/core/library-skills/hooks.test.ts`
   - `useLibrarySkills` returns empty array while loading
   - `useEnableLibrarySkill` invalidates the `["library-skills"]` query on success
+
+No component test for `LibrarySkillSettingsPage` — this matches existing coverage for `SkillSettingsPage` (also untested at the component layer).
 
 No E2E for v1.
 
