@@ -257,6 +257,7 @@ export interface Translations {
       memory: string;
       tools: string;
       skills: string;
+      librarySkills: string;
       notification: string;
       about: string;
     };
@@ -356,6 +357,12 @@ export interface Translations {
       emptyTitle: string;
       emptyDescription: string;
       emptyButton: string;
+    };
+    librarySkills: {
+      title: string;
+      description: string;
+      emptyTitle: string;
+      emptyDescription: string;
     };
     notification: {
       title: string;

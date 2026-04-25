@@ -313,6 +313,7 @@ export const zhCN: Translations = {
       memory: "记忆",
       tools: "工具",
       skills: "技能",
+      librarySkills: "技能库",
       notification: "通知",
       about: "关于",
     },
@@ -417,6 +418,13 @@ export const zhCN: Translations = {
       emptyDescription:
         "将你的 Agent Skill 文件夹放在 DeerFlow 根目录下的 `/skills/custom` 文件夹中。",
       emptyButton: "创建你的第一个技能",
+    },
+    librarySkills: {
+      title: "技能库",
+      description: "管理按需技能库。被禁用的技能将不会出现在 skill_search 的搜索结果中。",
+      emptyTitle: "技能库为空",
+      emptyDescription:
+        "将技能文件夹放在 DeerFlow 根目录下的 `skill-library/` 目录中。每个技能需要包含一个 `SKILL.md` 文件。",
     },
     notification: {
       title: "通知",

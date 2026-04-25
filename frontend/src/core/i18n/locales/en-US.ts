@@ -328,6 +328,7 @@ export const enUS: Translations = {
       memory: "Memory",
       tools: "Tools",
       skills: "Skills",
+      librarySkills: "Library Skills",
       notification: "Notification",
       about: "About",
     },
@@ -436,6 +437,14 @@ export const enUS: Translations = {
       emptyDescription:
         "Put your agent skill folders under the `/skills/custom` folder under the root folder of DeerFlow.",
       emptyButton: "Create Your First Skill",
+    },
+    librarySkills: {
+      title: "Skill Library",
+      description:
+        "Manage the on-demand skill library. Disabled skills are excluded from skill_search results.",
+      emptyTitle: "No library skills yet",
+      emptyDescription:
+        "Put skill folders under the `skill-library/` directory at the root of DeerFlow. Each skill needs a `SKILL.md` file.",
     },
     notification: {
       title: "Notification",
