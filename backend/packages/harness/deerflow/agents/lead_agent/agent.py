@@ -102,9 +102,16 @@ def _create_summarization_middleware() -> DeerFlowSummarizationMiddleware | None
         logger.exception("Failed to resolve skills container path; falling back to default")
         skills_container_path = "/mnt/skills"
 
+    try:
+        skill_library_container_path = get_app_config().skill_library.container_path or "/mnt/skill-library"
+    except Exception:
+        logger.exception("Failed to resolve skill_library container path; falling back to default")
+        skill_library_container_path = "/mnt/skill-library"
+
     return DeerFlowSummarizationMiddleware(
         **kwargs,
         skills_container_path=skills_container_path,
+        skill_library_container_path=skill_library_container_path,
         skill_file_read_tool_names=config.skill_file_read_tool_names,
         before_summarization=hooks,
         preserve_recent_skill_count=config.preserve_recent_skill_count,

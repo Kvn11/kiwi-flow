@@ -47,8 +47,29 @@ class LocalSandboxProvider(SandboxProvider):
                     )
                 )
 
+            # Map skill-library container path to local skill-library directory.
+            # Independent of skills/: read-only, mounted at config.skill_library.container_path.
+            library_container_path: str | None = None
+            try:
+                library_config = getattr(config, "skill_library", None)
+                if library_config is not None:
+                    library_path = library_config.get_path()
+                    library_container_path = library_config.container_path
+                    if library_path.exists():
+                        mappings.append(
+                            PathMapping(
+                                container_path=library_container_path,
+                                local_path=str(library_path),
+                                read_only=True,
+                            )
+                        )
+            except Exception as inner_e:
+                logger.warning("Could not setup skill_library mapping: %s", inner_e)
+
             # Map custom mounts from sandbox config
             _RESERVED_CONTAINER_PREFIXES = [container_path, "/mnt/acp-workspace", "/mnt/user-data"]
+            if library_container_path:
+                _RESERVED_CONTAINER_PREFIXES.append(library_container_path)
             sandbox_config = config.sandbox
             if sandbox_config and sandbox_config.mounts:
                 for mount in sandbox_config.mounts:

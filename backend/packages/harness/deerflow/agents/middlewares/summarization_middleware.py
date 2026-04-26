@@ -102,6 +102,7 @@ class DeerFlowSummarizationMiddleware(SummarizationMiddleware):
         self,
         *args,
         skills_container_path: str | None = None,
+        skill_library_container_path: str | None = None,
         skill_file_read_tool_names: Collection[str] | None = None,
         before_summarization: list[BeforeSummarizationHook] | None = None,
         preserve_recent_skill_count: int = 5,
@@ -111,11 +112,31 @@ class DeerFlowSummarizationMiddleware(SummarizationMiddleware):
     ) -> None:
         super().__init__(*args, **kwargs)
         self._skills_container_path = skills_container_path or "/mnt/skills"
+        # On-demand library skills are read via the same read_file path as
+        # auto-injected skills; preserve them across summarization too.
+        self._skill_library_container_path = skill_library_container_path or "/mnt/skill-library"
         self._skill_file_read_tool_names = frozenset(skill_file_read_tool_names or {"read_file", "read", "view", "cat"})
         self._before_summarization_hooks = before_summarization or []
         self._preserve_recent_skill_count = max(0, preserve_recent_skill_count)
         self._preserve_recent_skill_tokens = max(0, preserve_recent_skill_tokens)
         self._preserve_recent_skill_tokens_per_skill = max(0, preserve_recent_skill_tokens_per_skill)
+
+    @property
+    def _skill_roots(self) -> tuple[str, ...]:
+        """Roots whose read_file calls should survive summarization.
+
+        Derived dynamically so tests / runtime overrides that mutate
+        _skills_container_path or _skill_library_container_path post-init
+        still take effect.
+        """
+        return tuple(
+            dict.fromkeys(
+                [
+                    (self._skills_container_path or "/mnt/skills").rstrip("/"),
+                    (self._skill_library_container_path or "/mnt/skill-library").rstrip("/"),
+                ]
+            )
+        )
 
     def before_model(self, state: AgentState, runtime: Runtime) -> dict | None:
         return self._maybe_summarize(state, runtime)
@@ -185,7 +206,7 @@ class DeerFlowSummarizationMiddleware(SummarizationMiddleware):
             return to_summarize, preserved
 
         try:
-            bundles = self._find_skill_bundles(to_summarize, self._skills_container_path)
+            bundles = self._find_skill_bundles(to_summarize, self._skill_roots)
         except Exception:
             logger.exception("Skill-preserving summarization rescue failed; falling back to default partition")
             return to_summarize, preserved
@@ -224,9 +245,15 @@ class DeerFlowSummarizationMiddleware(SummarizationMiddleware):
     def _find_skill_bundles(
         self,
         messages: list[AnyMessage],
-        skills_root: str,
+        skills_roots: str | tuple[str, ...],
     ) -> list[_SkillBundle]:
-        """Locate AIMessage + paired ToolMessage groups that load skill files."""
+        """Locate AIMessage + paired ToolMessage groups that load skill files.
+
+        Accepts either a single root string (legacy) or a tuple of roots
+        covering both the auto-injected skills mount and the on-demand library.
+        """
+        if isinstance(skills_roots, str):
+            skills_roots = (skills_roots,)
         bundles: list[_SkillBundle] = []
         n = len(messages)
         i = 0
@@ -239,7 +266,7 @@ class DeerFlowSummarizationMiddleware(SummarizationMiddleware):
             tool_calls = list(msg.tool_calls)
             skill_paths_by_id: dict[str, str] = {}
             for tc in tool_calls:
-                if self._is_skill_tool_call(tc, skills_root):
+                if any(self._is_skill_tool_call(tc, root) for root in skills_roots):
                     tc_id = tc.get("id")
                     path = _tool_call_path(tc)
                     if tc_id and path:

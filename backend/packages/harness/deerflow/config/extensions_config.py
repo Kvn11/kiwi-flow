@@ -52,6 +52,17 @@ class SkillStateConfig(BaseModel):
     enabled: bool = Field(default=True, description="Whether this skill is enabled")
 
 
+class LibrarySkillStateConfig(BaseModel):
+    """Configuration for a single library skill's state.
+
+    Separate from SkillStateConfig so library skills can diverge in the
+    future (e.g. version pinning) without touching the prompt-injected
+    skills keyspace.
+    """
+
+    enabled: bool = Field(default=True, description="Whether this library skill is enabled")
+
+
 class ExtensionsConfig(BaseModel):
     """Unified configuration for MCP servers and skills."""
 
@@ -63,6 +74,11 @@ class ExtensionsConfig(BaseModel):
     skills: dict[str, SkillStateConfig] = Field(
         default_factory=dict,
         description="Map of skill name to state configuration",
+    )
+    library_skills: dict[str, LibrarySkillStateConfig] = Field(
+        default_factory=dict,
+        description="Map of library skill name to state configuration",
+        alias="librarySkills",
     )
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
@@ -129,7 +145,7 @@ class ExtensionsConfig(BaseModel):
         resolved_path = cls.resolve_config_path(config_path)
         if resolved_path is None:
             # Return empty config if extensions config file is not found
-            return cls(mcp_servers={}, skills={})
+            return cls(mcp_servers={}, skills={}, library_skills={})
 
         try:
             with open(resolved_path, encoding="utf-8") as f:
@@ -194,6 +210,24 @@ class ExtensionsConfig(BaseModel):
         if skill_config is None:
             # Default to enable for public & custom skill
             return skill_category in ("public", "custom")
+        return skill_config.enabled
+
+    def is_library_skill_enabled(self, skill_name: str) -> bool:
+        """Check if a library skill is enabled.
+
+        Library skills default to enabled when not present in the config —
+        the library is already opt-in via skill_search, so the per-skill
+        toggle is a kill-switch rather than an opt-in.
+
+        Args:
+            skill_name: Name of the library skill
+
+        Returns:
+            True if enabled, False otherwise
+        """
+        skill_config = self.library_skills.get(skill_name)
+        if skill_config is None:
+            return True
         return skill_config.enabled
 
 

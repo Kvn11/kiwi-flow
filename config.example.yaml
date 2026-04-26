@@ -12,7 +12,7 @@
 # ============================================================================
 # Bump this number when the config schema changes.
 # Run `make config-upgrade` to merge new fields into your local config.yaml.
-config_version: 8
+config_version: 9
 
 # ============================================================================
 # Logging
@@ -666,6 +666,22 @@ skills:
 # - Omitted or null: load all globally enabled skills (default)
 # - []: disable all skills for this agent
 # - ["skill-name"]: load only specific skills
+
+# ============================================================================
+# On-demand Skill Library Configuration (discoverable via skill_search)
+# ============================================================================
+# Skills under skill-library/ are NOT injected into the system prompt up front.
+# The agent discovers them at runtime via the skill_search tool, then read_files
+# the matched SKILL.md to load instructions on demand. Use this for specialized
+# skills that would otherwise bloat the prompt.
+#
+# Layout: skill-library/<skill-name>/SKILL.md (FLAT — no public/custom split)
+# Mount: matches skill_library.container_path below.
+
+skill_library:
+  enabled: true
+  # path: ./skill-library
+  # container_path: /mnt/skill-library
 
 # ============================================================================
 # Title Generation Configuration

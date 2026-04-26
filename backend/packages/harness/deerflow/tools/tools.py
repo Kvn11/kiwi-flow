@@ -135,6 +135,21 @@ def get_available_tools(
         except Exception as e:
             logger.error(f"Failed to get cached MCP tools: {e}")
 
+    # Add skill_search if the on-demand skill library is enabled and non-empty.
+    # Independent of MCP / tool_search; library skills are file-backed reference
+    # material, not LangChain tools.
+    try:
+        if getattr(config, "skill_library", None) is not None and config.skill_library.enabled:
+            from deerflow.skill_library.registry import get_library_registry
+            from deerflow.tools.builtins.skill_search import skill_search as skill_search_tool
+
+            library_registry = get_library_registry()
+            if library_registry is not None and len(library_registry) > 0:
+                builtin_tools.append(skill_search_tool)
+                logger.info(f"Skill library active: {len(library_registry)} skill(s) discoverable via skill_search")
+    except Exception as e:
+        logger.warning(f"Failed to initialize skill library: {e}")
+
     # Add invoke_acp_agent tool if any ACP agents are configured
     acp_tools: list[BaseTool] = []
     try:

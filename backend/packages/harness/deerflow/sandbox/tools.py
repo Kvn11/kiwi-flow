@@ -32,6 +32,7 @@ _LOCAL_BASH_SYSTEM_PATH_PREFIXES = (
 )
 
 _DEFAULT_SKILLS_CONTAINER_PATH = "/mnt/skills"
+_DEFAULT_SKILL_LIBRARY_CONTAINER_PATH = "/mnt/skill-library"
 _ACP_WORKSPACE_VIRTUAL_PATH = "/mnt/acp-workspace"
 _DEFAULT_GLOB_MAX_RESULTS = 200
 _MAX_GLOB_MAX_RESULTS = 1000
@@ -112,6 +113,78 @@ def _resolve_skills_path(path: str) -> str:
 
     relative = path[len(skills_container) :].lstrip("/")
     return _join_path_preserving_style(skills_host, relative)
+
+
+def _get_library_container_path() -> str:
+    """Get the skill-library container path from config, with fallback to default.
+
+    Same caching strategy as _get_skills_container_path: cache only on success
+    so a transient config failure doesn't permanently disable library access.
+    """
+    cached = getattr(_get_library_container_path, "_cached", None)
+    if cached is not None:
+        return cached
+    try:
+        from deerflow.config import get_app_config
+
+        value = get_app_config().skill_library.container_path
+        _get_library_container_path._cached = value  # type: ignore[attr-defined]
+        return value
+    except Exception:
+        return _DEFAULT_SKILL_LIBRARY_CONTAINER_PATH
+
+
+def _get_library_host_path() -> str | None:
+    """Get the skill-library host filesystem path from config.
+
+    Returns None if the directory does not exist or config cannot be loaded.
+    Only successful lookups are cached.
+    """
+    cached = getattr(_get_library_host_path, "_cached", None)
+    if cached is not None:
+        return cached
+    try:
+        from deerflow.config import get_app_config
+
+        config = get_app_config()
+        library_path = config.skill_library.get_path()
+        if library_path.exists():
+            value = str(library_path)
+            _get_library_host_path._cached = value  # type: ignore[attr-defined]
+            return value
+    except Exception:
+        pass
+    return None
+
+
+def _is_library_path(path: str) -> bool:
+    """Check if a path is under the skill-library container path."""
+    library_prefix = _get_library_container_path()
+    return path == library_prefix or path.startswith(f"{library_prefix}/")
+
+
+def _resolve_library_path(path: str) -> str:
+    """Resolve a virtual /mnt/skill-library path to a host filesystem path.
+
+    Args:
+        path: Virtual library path (e.g. /mnt/skill-library/foo/SKILL.md)
+
+    Returns:
+        Resolved host path.
+
+    Raises:
+        FileNotFoundError: If the library directory is not configured or doesn't exist.
+    """
+    library_container = _get_library_container_path()
+    library_host = _get_library_host_path()
+    if library_host is None:
+        raise FileNotFoundError(f"Skill library directory not available for path: {path}")
+
+    if path == library_container:
+        return library_host
+
+    relative = path[len(library_container) :].lstrip("/")
+    return _join_path_preserving_style(library_host, relative)
 
 
 def _is_acp_workspace_path(path: str) -> bool:
@@ -331,6 +404,8 @@ def _resolve_local_read_path(path: str, thread_data: ThreadDataState) -> str:
     validate_local_tool_path(path, thread_data, read_only=True)
     if _is_skills_path(path):
         return _resolve_skills_path(path)
+    if _is_library_path(path):
+        return _resolve_library_path(path)
     if _is_acp_workspace_path(path):
         return _resolve_acp_workspace_path(path, _extract_thread_id_from_thread_data(thread_data))
     return _resolve_and_validate_user_data_path(path, thread_data)
@@ -485,6 +560,25 @@ def mask_local_paths_in_output(output: str, thread_data: ThreadDataState | None)
 
             result = pattern.sub(replace_skills, result)
 
+    # Mask skill-library host paths
+    library_host = _get_library_host_path()
+    library_container = _get_library_container_path()
+    if library_host:
+        raw_base = str(Path(library_host))
+        resolved_base = str(Path(library_host).resolve())
+        for base in _path_variants(raw_base) | _path_variants(resolved_base):
+            escaped = re.escape(base).replace(r"\\", r"[/\\]")
+            pattern = re.compile(escaped + r"(?:[/\\][^\s\"';&|<>()]*)?")
+
+            def replace_library(match: re.Match, _base: str = base) -> str:
+                matched_path = match.group(0)
+                if matched_path == _base:
+                    return library_container
+                relative = matched_path[len(_base) :].lstrip("/\\")
+                return f"{library_container}/{relative}" if relative else library_container
+
+            result = pattern.sub(replace_library, result)
+
     # Mask ACP workspace host paths
     _thread_id = _extract_thread_id_from_thread_data(thread_data)
     acp_host = _get_acp_workspace_host_path(_thread_id)
@@ -576,6 +670,12 @@ def validate_local_tool_path(path: str, thread_data: ThreadDataState | None, *, 
             raise PermissionError(f"Write access to skills path is not allowed: {path}")
         return
 
+    # Skill library paths — read-only access only
+    if _is_library_path(path):
+        if not read_only:
+            raise PermissionError(f"Write access to skill library path is not allowed: {path}")
+        return
+
     # ACP workspace paths — read-only access only
     if _is_acp_workspace_path(path):
         if not read_only:
@@ -593,7 +693,7 @@ def validate_local_tool_path(path: str, thread_data: ThreadDataState | None, *, 
             raise PermissionError(f"Write access to read-only mount is not allowed: {path}")
         return
 
-    raise PermissionError(f"Only paths under {VIRTUAL_PATH_PREFIX}/, {_get_skills_container_path()}/, {_ACP_WORKSPACE_VIRTUAL_PATH}/, or configured mount paths are allowed")
+    raise PermissionError(f"Only paths under {VIRTUAL_PATH_PREFIX}/, {_get_skills_container_path()}/, {_get_library_container_path()}/, {_ACP_WORKSPACE_VIRTUAL_PATH}/, or configured mount paths are allowed")
 
 
 def _validate_resolved_user_data_path(resolved: Path, thread_data: ThreadDataState) -> None:
@@ -676,6 +776,11 @@ def validate_local_bash_command_paths(command: str, thread_data: ThreadDataState
             _reject_path_traversal(absolute_path)
             continue
 
+        # Allow skill-library container path (resolved by tools.py before passing to sandbox)
+        if _is_library_path(absolute_path):
+            _reject_path_traversal(absolute_path)
+            continue
+
         # Allow ACP workspace path (path-traversal check only)
         if _is_acp_workspace_path(absolute_path):
             _reject_path_traversal(absolute_path)
@@ -718,6 +823,17 @@ def replace_virtual_paths_in_command(command: str, thread_data: ThreadDataState 
             return _resolve_skills_path(match.group(0))
 
         result = skills_pattern.sub(replace_skills_match, result)
+
+    # Replace skill-library paths
+    library_container = _get_library_container_path()
+    library_host = _get_library_host_path()
+    if library_host and library_container in result:
+        library_pattern = re.compile(rf"{re.escape(library_container)}(/[^\s\"';&|<>()]*)?")
+
+        def replace_library_match(match: re.Match) -> str:
+            return _resolve_library_path(match.group(0))
+
+        result = library_pattern.sub(replace_library_match, result)
 
     # Replace ACP workspace paths
     _thread_id = _extract_thread_id_from_thread_data(thread_data)

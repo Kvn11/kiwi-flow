@@ -61,9 +61,11 @@ deer-flow/
 │   ├── tests/                 # Test suite
 │   └── docs/                  # Documentation
 ├── frontend/                   # Next.js frontend application
-└── skills/                     # Agent skills directory
-    ├── public/                # Public skills (committed)
-    └── custom/                # Custom skills (gitignored)
+├── skills/                     # Agent skills (auto-injected into system prompt)
+│   ├── public/                # Public skills (committed)
+│   └── custom/                # Custom skills (gitignored)
+└── skill-library/              # On-demand skills (discoverable via skill_search)
+    └── <skill-name>/SKILL.md  # Flat layout, no public/custom split
 ```
 
 ## Important Development Guidelines
@@ -294,6 +296,25 @@ Proxied through nginx: `/api/langgraph/*` → LangGraph, all other `/api/*` → 
 - **Loading**: `load_skills()` recursively scans `skills/{public,custom}` for `SKILL.md`, parses metadata, and reads enabled state from extensions_config.json
 - **Injection**: Enabled skills listed in agent system prompt with container paths
 - **Installation**: `POST /api/skills/install` extracts .skill ZIP archive to custom/ directory
+
+### Skill Library (`packages/harness/deerflow/skill_library/`)
+
+A second class of skills for specialized workflows that should NOT pay the per-turn token cost of being in the system prompt. The agent discovers them on demand via the `skill_search` tool.
+
+- **Location**: `deer-flow/skill-library/<skill-name>/SKILL.md` (FLAT layout — no public/custom split)
+- **Format**: Same `SKILL.md` shape as `skills/` (YAML frontmatter parsed by the same `parse_skill_file`)
+- **Mount**: `/mnt/skill-library/<skill-name>/SKILL.md` (read-only, configured at `skill_library.container_path`)
+- **Discovery**: `skill_search(query)` LangChain tool — supports `select:name1,name2`, `+keyword rest`, or plain regex; returns up to 5 `{name, description, path}` matches
+- **Loading**: agent calls `read_file(path)` on a matched result to load the workflow body
+- **Enable/disable**: per-skill toggle in `extensions_config.json` under `librarySkills`; defaults to enabled when absent
+- **Master switch**: `skill_library.enabled` in `config.yaml` (default true). When disabled, `skill_search` is not bound.
+- **Gateway**: `GET /api/library-skills`, `GET /api/library-skills/{name}`, `PUT /api/library-skills/{name}` (toggle). Toggling resets the in-process registry cache; no prompt-cache invalidation is needed since library skills never appear in the prompt.
+- **Summarization**: library `read_file` calls are preserved across context summarization just like `/mnt/skills` reads (see `DeerFlowSummarizationMiddleware._skill_roots`).
+- **Subagents**: there is no parallel for `_merge_skill_allowlists` — subagents access the library by having `skill_search` in their tool whitelist. To deny library access for a subagent, omit `skill_search` from its tools.
+
+**When to choose `skills/` vs `skill-library/`:**
+- `skills/`: workflows that the agent will use frequently across many tasks — worth the ~25-40 tokens of metadata in every system prompt
+- `skill-library/`: specialized / niche workflows where most turns won't need them — pays zero prompt cost until the agent searches
 
 ### Model Factory (`packages/harness/deerflow/models/factory.py`)
 

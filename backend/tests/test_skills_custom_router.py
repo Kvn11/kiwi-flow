@@ -249,7 +249,10 @@ def test_update_skill_refreshes_prompt_cache_before_return(monkeypatch, tmp_path
         enabled_state["value"] = False
 
     monkeypatch.setattr("app.gateway.routers.skills.load_skills", _load_skills)
-    monkeypatch.setattr("app.gateway.routers.skills.get_extensions_config", lambda: SimpleNamespace(mcp_servers={}, skills={}))
+    # Use a real ExtensionsConfig so the router's model_dump() round-trip works.
+    from deerflow.config.extensions_config import ExtensionsConfig
+
+    monkeypatch.setattr("app.gateway.routers.skills.get_extensions_config", lambda: ExtensionsConfig())
     monkeypatch.setattr("app.gateway.routers.skills.reload_extensions_config", lambda: None)
     monkeypatch.setattr(skills_router.ExtensionsConfig, "resolve_config_path", staticmethod(lambda: config_path))
     monkeypatch.setattr("app.gateway.routers.skills.refresh_skills_system_prompt_cache_async", _refresh)
@@ -263,4 +266,8 @@ def test_update_skill_refreshes_prompt_cache_before_return(monkeypatch, tmp_path
     assert response.status_code == 200
     assert response.json()["enabled"] is False
     assert refresh_calls == ["refresh"]
-    assert json.loads(config_path.read_text(encoding="utf-8")) == {"mcpServers": {}, "skills": {"demo-skill": {"enabled": False}}}
+    written = json.loads(config_path.read_text(encoding="utf-8"))
+    assert written["mcpServers"] == {}
+    assert written["skills"] == {"demo-skill": {"enabled": False}}
+    # New: librarySkills section should also round-trip even when empty.
+    assert written["librarySkills"] == {}

@@ -334,10 +334,10 @@ async def update_skill(skill_name: str, request: SkillUpdateRequest) -> SkillRes
         extensions_config = get_extensions_config()
         extensions_config.skills[skill_name] = SkillStateConfig(enabled=request.enabled)
 
-        config_data = {
-            "mcpServers": {name: server.model_dump() for name, server in extensions_config.mcp_servers.items()},
-            "skills": {name: {"enabled": skill_config.enabled} for name, skill_config in extensions_config.skills.items()},
-        }
+        # Round-trip the full config so unrelated sections (mcpServers, librarySkills,
+        # extra fields) are preserved on disk. Earlier versions hand-built a dict that
+        # only included mcpServers + skills, which would silently drop new sections.
+        config_data = extensions_config.model_dump(by_alias=True, exclude_none=True)
 
         with open(config_path, "w", encoding="utf-8") as f:
             json.dump(config_data, f, indent=2)

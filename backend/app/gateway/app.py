@@ -12,6 +12,7 @@ from app.gateway.routers import (
     artifacts,
     assistants_compat,
     channels,
+    library_skills,
     mcp,
     memory,
     models,
@@ -139,6 +140,10 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
                 "description": "Manage skills and their configurations",
             },
             {
+                "name": "library-skills",
+                "description": "Manage on-demand library skills discoverable via skill_search",
+            },
+            {
                 "name": "artifacts",
                 "description": "Access and download thread artifacts and generated files",
             },
@@ -191,6 +196,9 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
 
     # Skills API is mounted at /api/skills
     app.include_router(skills.router)
+
+    # Library Skills API is mounted at /api/library-skills (on-demand, discoverable via skill_search)
+    app.include_router(library_skills.router)
 
     # Artifacts API is mounted at /api/threads/{thread_id}/artifacts
     app.include_router(artifacts.router)
