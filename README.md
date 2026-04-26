@@ -13,6 +13,9 @@ DeerFlow (**D**eep **E**xploration and **E**fficient **R**esearch **Flow**) is a
 
 https://github.com/user-attachments/assets/a8bcadc4-e040-4cf2-8fda-dd768b999c18
 
+> [!IMPORTANT]
+> **This repository is a fork of the original [DeerFlow](https://github.com/bytedance/deer-flow) project by ByteDance.** It is maintained independently and may diverge from upstream. For the canonical project, see [bytedance/deer-flow](https://github.com/bytedance/deer-flow).
+
 > [!NOTE]
 > **DeerFlow 2.0 is a ground-up rewrite.** It shares no code with v1. If you're looking for the original Deep Research framework, it's maintained on the [`1.x` branch](https://github.com/bytedance/deer-flow/tree/main-1.x) — contributions there are still welcome. Active development has moved to 2.0.
 
