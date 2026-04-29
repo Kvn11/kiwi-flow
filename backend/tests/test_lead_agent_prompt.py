@@ -163,3 +163,135 @@ def test_warm_enabled_skills_cache_logs_on_timeout(monkeypatch, caplog):
 
     assert warmed is False
     assert "Timed out waiting" in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# Discover section (skill_search) — gated on skill_library state
+# ---------------------------------------------------------------------------
+
+
+def _make_registry(length: int):
+    """Build a tiny stand-in for SkillLibraryRegistry that supports ``len()``.
+
+    SimpleNamespace can't carry a working ``__len__`` because dunder lookup
+    bypasses instance attributes, so we use a small class instead.
+    """
+
+    class _Reg:
+        def __len__(self) -> int:
+            return length
+
+    return _Reg()
+
+
+def _patch_library_state(monkeypatch, *, enabled: bool, registry_len: int) -> None:
+    """Configure the skill library so _is_skill_library_active returns the desired result."""
+    config = SimpleNamespace(
+        sandbox=SimpleNamespace(mounts=[]),
+        skills=SimpleNamespace(container_path="/mnt/skills"),
+        skill_library=SimpleNamespace(enabled=enabled),
+        skill_evolution=SimpleNamespace(enabled=False),
+    )
+    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
+    monkeypatch.setattr(
+        "deerflow.skill_library.registry.get_library_registry",
+        lambda: _make_registry(registry_len),
+    )
+
+
+def test_is_skill_library_active_returns_false_when_master_switch_disabled(monkeypatch):
+    _patch_library_state(monkeypatch, enabled=False, registry_len=3)
+    assert prompt_module._is_skill_library_active() is False
+
+
+def test_is_skill_library_active_returns_false_when_registry_empty(monkeypatch):
+    _patch_library_state(monkeypatch, enabled=True, registry_len=0)
+    assert prompt_module._is_skill_library_active() is False
+
+
+def test_is_skill_library_active_returns_true_when_enabled_and_populated(monkeypatch):
+    _patch_library_state(monkeypatch, enabled=True, registry_len=2)
+    assert prompt_module._is_skill_library_active() is True
+
+
+def test_is_skill_library_active_returns_false_when_config_load_fails(monkeypatch, caplog):
+    def _raise():
+        raise RuntimeError("config exploded")
+
+    monkeypatch.setattr("deerflow.config.get_app_config", _raise)
+
+    with caplog.at_level("DEBUG", logger=prompt_module.__name__):
+        assert prompt_module._is_skill_library_active() is False
+
+    # Per-render path uses debug-level logging to avoid spam.
+    assert "Failed to load app config" in caplog.text
+
+
+def test_is_skill_library_active_returns_false_when_registry_load_fails(monkeypatch, caplog):
+    config = SimpleNamespace(
+        skill_library=SimpleNamespace(enabled=True),
+    )
+    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
+
+    def _raise():
+        raise RuntimeError("registry exploded")
+
+    monkeypatch.setattr("deerflow.skill_library.registry.get_library_registry", _raise)
+
+    with caplog.at_level("DEBUG", logger=prompt_module.__name__):
+        assert prompt_module._is_skill_library_active() is False
+
+    assert "Failed to load skill library registry" in caplog.text
+
+
+def test_build_discover_section_empty_when_inactive(monkeypatch):
+    _patch_library_state(monkeypatch, enabled=False, registry_len=0)
+    assert prompt_module._build_discover_section() == ""
+
+
+def test_build_discover_section_contains_workflow_when_active(monkeypatch):
+    _patch_library_state(monkeypatch, enabled=True, registry_len=1)
+
+    section = prompt_module._build_discover_section()
+
+    assert section.startswith("<discover_system>")
+    assert section.endswith("</discover_system>")
+    assert "DISCOVER → CLARIFY → PLAN → ACT" in section
+    assert "skill_search(" in section
+    # Must explicitly tell the agent to search before clarification/planning.
+    assert "BEFORE `ask_clarification`" in section
+    assert "BEFORE `write_todos`" in section
+
+
+def _patch_template_dependencies(monkeypatch) -> None:
+    monkeypatch.setattr(prompt_module, "_get_enabled_skills", lambda: [])
+    monkeypatch.setattr(prompt_module, "get_deferred_tools_prompt_section", lambda: "")
+    monkeypatch.setattr(prompt_module, "_build_acp_section", lambda: "")
+    monkeypatch.setattr(prompt_module, "_build_custom_mounts_section", lambda: "")
+    monkeypatch.setattr(prompt_module, "_get_memory_context", lambda agent_name=None: "")
+    monkeypatch.setattr(prompt_module, "get_agent_soul", lambda agent_name=None: "")
+
+
+def test_apply_prompt_template_includes_discover_section_when_library_active(monkeypatch):
+    _patch_library_state(monkeypatch, enabled=True, registry_len=2)
+    _patch_template_dependencies(monkeypatch)
+
+    rendered = prompt_module.apply_prompt_template()
+
+    # The actual section opens at the start of a line; the clarification system
+    # only references it in prose. Distinguish by anchoring on a body marker.
+    assert "<discover_system>\n**WORKFLOW PRIORITY" in rendered
+    assert "MANDATORY FIRST STEP for non-trivial requests" in rendered
+
+
+def test_apply_prompt_template_excludes_discover_section_when_library_inactive(monkeypatch):
+    _patch_library_state(monkeypatch, enabled=True, registry_len=0)
+    _patch_template_dependencies(monkeypatch)
+
+    rendered = prompt_module.apply_prompt_template()
+
+    assert "<discover_system>\n**WORKFLOW PRIORITY" not in rendered
+    assert "MANDATORY FIRST STEP for non-trivial requests" not in rendered
+    # The clarification system header always lists the new ordering for clarity,
+    # even when no discover phase is active in the current render.
+    assert "WORKFLOW PRIORITY: DISCOVER → CLARIFY → PLAN → ACT" in rendered

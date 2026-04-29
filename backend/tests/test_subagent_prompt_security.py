@@ -55,3 +55,33 @@ def test_general_purpose_subagent_prompt_mentions_workspace_relative_paths() -> 
 
     assert "Treat `/mnt/user-data/workspace` as the default working directory for coding and file IO" in GENERAL_PURPOSE_CONFIG.system_prompt
     assert "`hello.txt`, `../uploads/input.csv`, and `../outputs/result.md`" in GENERAL_PURPOSE_CONFIG.system_prompt
+
+
+def test_general_purpose_subagent_prompt_includes_discover_first_block() -> None:
+    from deerflow.subagents.builtins.general_purpose import GENERAL_PURPOSE_CONFIG
+
+    prompt = GENERAL_PURPOSE_CONFIG.system_prompt
+    assert "<discover_first>" in prompt
+    assert "</discover_first>" in prompt
+    assert "skill_search(query)" in prompt
+
+
+def test_bash_subagent_prompt_includes_discover_first_block() -> None:
+    from deerflow.subagents.builtins.bash_agent import BASH_AGENT_CONFIG
+
+    prompt = BASH_AGENT_CONFIG.system_prompt
+    assert "<discover_first>" in prompt
+    assert "</discover_first>" in prompt
+    assert "skill_search(query)" in prompt
+
+
+def test_bash_subagent_includes_skill_search_in_tool_whitelist() -> None:
+    from deerflow.subagents.builtins.bash_agent import BASH_AGENT_CONFIG
+
+    # The bash agent uses an explicit allowlist (not inheritance) — skill_search
+    # must be listed so the agent can actually call the tool its prompt advertises.
+    assert BASH_AGENT_CONFIG.tools is not None
+    assert "skill_search" in BASH_AGENT_CONFIG.tools
+    # Sanity: the original sandbox-tool whitelist is preserved.
+    for expected in ("bash", "ls", "read_file", "write_file", "str_replace"):
+        assert expected in BASH_AGENT_CONFIG.tools

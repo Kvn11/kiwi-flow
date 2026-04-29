@@ -250,7 +250,7 @@ Proxied through nginx: `/api/langgraph/*` → LangGraph, all other `/api/*` → 
 
 ### Subagent System (`packages/harness/deerflow/subagents/`)
 
-**Built-in Agents**: `general-purpose` (all tools except `task`) and `bash` (command specialist)
+**Built-in Agents**: `general-purpose` (all tools except `task`, inherits `skill_search`) and `bash` (command specialist + `skill_search` for discovering bash-oriented skills)
 **Execution**: Dual thread pool - `_scheduler_pool` (3 workers) + `_execution_pool` (3 workers)
 **Concurrency**: `MAX_CONCURRENT_SUBAGENTS = 3` enforced by `SubagentLimitMiddleware` (truncates excess tool calls in `after_model`), 15-minute timeout
 **Flow**: `task()` tool → `SubagentExecutor` → background thread → poll 5s → SSE events → result
@@ -308,7 +308,7 @@ A second class of skills for specialized workflows that should NOT pay the per-t
 - **Loading**: agent calls `read_file(path)` on a matched result to load the workflow body
 - **Enable/disable**: per-skill toggle in `extensions_config.json` under `librarySkills`; defaults to enabled when absent
 - **Master switch**: `skill_library.enabled` in `config.yaml` (default true). When disabled, `skill_search` is not bound.
-- **Gateway**: `GET /api/library-skills`, `GET /api/library-skills/{name}`, `PUT /api/library-skills/{name}` (toggle). Toggling resets the in-process registry cache; no prompt-cache invalidation is needed since library skills never appear in the prompt.
+- **Gateway**: `GET /api/library-skills`, `GET /api/library-skills/{name}`, `PUT /api/library-skills/{name}` (toggle). Toggling resets the in-process registry cache. Individual library skills do not appear in the system prompt, but the lead-agent prompt's `<discover_system>` section is gated on whether the registry has any enabled skills (see `_is_skill_library_active()` in `agents/lead_agent/prompt.py`); since `_build_discover_section()` is uncached and re-reads the registry every render, no separate prompt-cache invalidation is needed.
 - **Summarization**: library `read_file` calls are preserved across context summarization just like `/mnt/skills` reads (see `DeerFlowSummarizationMiddleware._skill_roots`).
 - **Subagents**: there is no parallel for `_merge_skill_allowlists` — subagents access the library by having `skill_search` in their tool whitelist. To deny library access for a subagent, omit `skill_search` from its tools.
 

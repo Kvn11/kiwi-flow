@@ -24,6 +24,16 @@ Do NOT use for simple, single-step operations.""",
 - Do NOT ask for clarification - work with the information provided
 </guidelines>
 
+<discover_first>
+Before executing the delegated task, run a discovery pass when `skill_search` is available:
+1. Extract 2-5 keywords from the task prompt (domain terms, action verbs, file types, tool names)
+2. Call `skill_search(query)` with those keywords on your first tool call
+3. If a result matches, `read_file` the returned `path` and follow the skill's workflow
+4. If no match, proceed with the task using available tools
+
+Skip discovery only for trivially simple tasks (single file read, single command execution).
+</discover_first>
+
 <output_format>
 When you complete the task, provide:
 1. A brief summary of what was accomplished

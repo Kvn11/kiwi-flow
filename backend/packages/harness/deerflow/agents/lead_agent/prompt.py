@@ -164,6 +164,87 @@ Skip simple one-off tasks.
 """
 
 
+def _is_skill_library_active() -> bool:
+    """Return True only when skill_search will actually be bound to the agent.
+
+    Mirrors the conditional binding in tools.py (skill library master switch
+    enabled AND registry holds at least one skill). When false, the discover
+    section must NOT be injected — otherwise the agent will be told to call a
+    tool that does not exist.
+    """
+    try:
+        from deerflow.config import get_app_config
+
+        config = get_app_config()
+    except Exception:
+        # Called per prompt render — use debug to avoid log spam if config is broken.
+        logger.debug("Failed to load app config while building discover section", exc_info=True)
+        return False
+
+    skill_library_config = getattr(config, "skill_library", None)
+    if skill_library_config is None or not getattr(skill_library_config, "enabled", False):
+        return False
+
+    try:
+        from deerflow.skill_library.registry import get_library_registry
+
+        registry = get_library_registry()
+    except Exception:
+        logger.debug("Failed to load skill library registry while building discover section", exc_info=True)
+        return False
+
+    return registry is not None and len(registry) > 0
+
+
+def _build_discover_section() -> str:
+    """Build the <discover_system> prompt section.
+
+    Returns an empty string when the skill_search tool is not bound — keeping
+    the prompt consistent with the actually-available toolset.
+    """
+    if not _is_skill_library_active():
+        return ""
+
+    return """<discover_system>
+**WORKFLOW PRIORITY: DISCOVER → CLARIFY → PLAN → ACT**
+
+Before clarifying with the user or planning any approach, you MUST first DISCOVER
+whether a specialized skill exists for this task. The skill library holds
+specialized workflows that are NOT preloaded into your context — they encode
+best practices, edge cases, and known pitfalls. A matching skill may answer
+questions you would otherwise need to ask, or prescribe the plan you would
+otherwise design.
+
+**MANDATORY FIRST STEP for non-trivial requests:**
+1. Read the user's request and extract 2-5 salient keywords (domain terms,
+   action verbs, file types, tool names — e.g. "pdf extract tables",
+   "stripe webhook", "youtube transcript").
+2. On your FIRST tool call of the turn, call `skill_search(query)` with those
+   keywords — BEFORE `ask_clarification`, BEFORE `write_todos`, BEFORE any
+   action tool.
+3. If a result matches, immediately `read_file` the returned `path` and follow
+   the skill's workflow.
+4. Only after discovery should you proceed to clarification (if still needed)
+   and planning.
+
+**Query forms (see skill_search docstring):**
+- Natural keywords:   `skill_search("pdf extract tables")`
+- Required substring: `skill_search("+pdf extract tables")` (require "pdf" in name)
+- Direct by name:     `skill_search("select:pdf-extract")`
+
+**When to skip discovery:**
+- Trivial single-step operations ("what's 2+2", "read this file", "list this dir")
+- Pure meta-conversation about prior turns
+- You already searched for this same task earlier in the conversation
+
+**STRICT ENFORCEMENT:**
+- DO NOT call `ask_clarification` before searching — the skill may answer the question
+- DO NOT call `write_todos` before searching — the skill may prescribe the plan
+- DO NOT execute action tools before searching — the skill may dictate the approach
+- Discover first → if hit, `read_file` and follow the skill → if miss or skip, proceed to CLARIFY/PLAN/ACT
+</discover_system>"""
+
+
 def _build_available_subagents_description(available_names: list[str], bash_available: bool) -> str:
     """Dynamically build subagent type descriptions from registry.
 
@@ -355,14 +436,18 @@ You are {agent_name}, an open-source super agent.
 <thinking_style>
 - Think concisely and strategically about the user's request BEFORE taking action
 - Break down the task: What is clear? What is ambiguous? What is missing?
-- **PRIORITY CHECK: If anything is unclear, missing, or has multiple interpretations, you MUST ask for clarification FIRST - do NOT proceed with work**
+- **PRIORITY CHECK: When `skill_search` is available, DISCOVER first — call `skill_search` with keywords from the request BEFORE clarification, planning, or any action tool.**
+- **After discovery, if anything remains unclear, missing, or has multiple interpretations, you MUST ask for clarification — do NOT proceed with work.**
 {subagent_thinking}- Never write down your full final answer or report in thinking process, but only outline
 - CRITICAL: After thinking, you MUST provide your actual response to the user. Thinking is for planning, the response is for delivery.
 - Your response must contain the actual answer, not just a reference to what you thought about
 </thinking_style>
 
+{discover_section}
+
 <clarification_system>
-**WORKFLOW PRIORITY: CLARIFY → PLAN → ACT**
+**WORKFLOW PRIORITY: DISCOVER → CLARIFY → PLAN → ACT**
+If a discover phase is active (skill library enabled), it runs BEFORE clarification — see `<discover_system>` above.
 1. **FIRST**: Analyze the request in your thinking - identify what's unclear, missing, or ambiguous
 2. **SECOND**: If clarification is needed, call `ask_clarification` tool IMMEDIATELY - do NOT start working
 3. **THIRD**: Only after all clarifications are resolved, proceed with planning and execution
@@ -523,7 +608,8 @@ combined with a FastAPI gateway for REST API access [citation:FastAPI](https://f
 </citations>
 
 <critical_reminders>
-- **Clarification First**: ALWAYS clarify unclear/missing/ambiguous requirements BEFORE starting work - never assume or guess
+- **Discover First**: When `skill_search` is available, ALWAYS call it with keywords from the user's request BEFORE clarifying or planning — a matching skill may resolve the request without further questions or design work.
+- **Clarification Second**: After discovery, clarify unclear/missing/ambiguous requirements BEFORE starting work - never assume or guess
 {subagent_reminder}- Skill First: Always load the relevant skill before starting **complex** tasks.
 - Progressive Loading: Load resources incrementally as referenced in skills
 - Output Files: Final deliverables must be in `/mnt/user-data/outputs`
@@ -732,6 +818,9 @@ def apply_prompt_template(subagent_enabled: bool = False, max_concurrent_subagen
     # Get skills section
     skills_section = get_skills_prompt_section(available_skills)
 
+    # Get discover section (only present when skill_search is actually bound)
+    discover_section = _build_discover_section()
+
     # Get deferred tools section (tool_search)
     deferred_tools_section = get_deferred_tools_prompt_section()
 
@@ -745,6 +834,7 @@ def apply_prompt_template(subagent_enabled: bool = False, max_concurrent_subagen
         agent_name=agent_name or "DeerFlow 2.0",
         soul=get_agent_soul(agent_name),
         skills_section=skills_section,
+        discover_section=discover_section,
         deferred_tools_section=deferred_tools_section,
         memory_context=memory_context,
         subagent_section=subagent_section,

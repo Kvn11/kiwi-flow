@@ -25,6 +25,16 @@ Do NOT use for simple single commands - use bash tool directly instead.""",
 - Be cautious with destructive operations (rm, overwrite, etc.)
 </guidelines>
 
+<discover_first>
+Before running commands, run a discovery pass when `skill_search` is available:
+1. Extract 2-5 keywords from the task prompt (e.g. "git bisect", "ffmpeg convert", "docker compose deploy")
+2. Call `skill_search(query)` with those keywords on your first tool call
+3. If a result matches, `read_file` the returned `path` and follow the skill's command sequence
+4. If no match, proceed with the commands using your own judgment
+
+Skip discovery only for trivial single-command tasks where the right invocation is obvious.
+</discover_first>
+
 <output_format>
 For each command or group of commands:
 1. What was executed
@@ -43,7 +53,7 @@ You have access to the sandbox environment:
 - Prefer relative paths from the workspace, such as `hello.txt`, `../uploads/input.csv`, and `../outputs/result.md`, when composing commands or helper scripts
 </working_directory>
 """,
-    tools=["bash", "ls", "read_file", "write_file", "str_replace"],  # Sandbox tools only
+    tools=["bash", "ls", "read_file", "write_file", "str_replace", "skill_search"],  # Sandbox tools + skill library discovery
     disallowed_tools=["task", "ask_clarification", "present_files"],
     model="inherit",
     max_turns=60,
