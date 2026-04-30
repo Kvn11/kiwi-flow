@@ -7,7 +7,7 @@ import pytest
 from langchain_core.messages import AIMessage, HumanMessage, RemoveMessage, ToolMessage
 
 from kiwi.agents.memory.summarization_hook import memory_flush_hook
-from kiwi.agents.middlewares.summarization_middleware import DeerFlowSummarizationMiddleware, SummarizationEvent
+from kiwi.agents.middlewares.summarization_middleware import KiwiSummarizationMiddleware, SummarizationEvent
 from kiwi.config.memory_config import MemoryConfig
 
 
@@ -38,10 +38,10 @@ def _middleware(
     preserve_recent_skill_count: int = 0,
     preserve_recent_skill_tokens: int = 0,
     preserve_recent_skill_tokens_per_skill: int = 0,
-) -> DeerFlowSummarizationMiddleware:
+) -> KiwiSummarizationMiddleware:
     model = MagicMock()
     model.invoke.return_value = SimpleNamespace(text="compressed summary")
-    return DeerFlowSummarizationMiddleware(
+    return KiwiSummarizationMiddleware(
         model=model,
         trigger=trigger,
         keep=keep,

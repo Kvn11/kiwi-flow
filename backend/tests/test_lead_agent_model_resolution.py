@@ -226,7 +226,7 @@ def test_create_summarization_middleware_uses_configured_model_alias(monkeypatch
         return fake_model
 
     monkeypatch.setattr(lead_agent_module, "create_chat_model", _fake_create_chat_model)
-    monkeypatch.setattr(lead_agent_module, "DeerFlowSummarizationMiddleware", lambda **kwargs: kwargs)
+    monkeypatch.setattr(lead_agent_module, "KiwiSummarizationMiddleware", lambda **kwargs: kwargs)
 
     middleware = lead_agent_module._create_summarization_middleware()
 
@@ -250,7 +250,7 @@ def test_create_summarization_middleware_registers_memory_flush_hook_when_memory
         captured.update(kwargs)
         return kwargs
 
-    monkeypatch.setattr(lead_agent_module, "DeerFlowSummarizationMiddleware", _fake_middleware)
+    monkeypatch.setattr(lead_agent_module, "KiwiSummarizationMiddleware", _fake_middleware)
 
     lead_agent_module._create_summarization_middleware()
 
@@ -274,7 +274,7 @@ def test_create_summarization_middleware_passes_skill_read_tool_names(monkeypatc
         captured.update(kwargs)
         return kwargs
 
-    monkeypatch.setattr(lead_agent_module, "DeerFlowSummarizationMiddleware", _fake_middleware)
+    monkeypatch.setattr(lead_agent_module, "KiwiSummarizationMiddleware", _fake_middleware)
 
     lead_agent_module._create_summarization_middleware()
 

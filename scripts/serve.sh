@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# serve.sh — Unified DeerFlow service launcher
+# serve.sh — Unified Kiwi service launcher
 #
 # Usage:
 #   ./scripts/serve.sh [--dev|--prod] [--gateway] [--daemon] [--stop|--restart]
@@ -91,7 +91,7 @@ stop_all() {
     _kill_port 2024
     _kill_port 8001
     _kill_port 3000
-    ./scripts/cleanup-containers.sh deer-flow-sandbox 2>/dev/null || true
+    ./scripts/cleanup-containers.sh kiwi-flow-sandbox 2>/dev/null || true
     echo "✓ All services stopped"
 }
 
@@ -167,7 +167,7 @@ if ! { \
         [ -f backend/config.yaml ] || \
         [ -f config.yaml ]; \
     }; then
-    echo "✗ No DeerFlow config file found."
+    echo "✗ No Kiwi config file found."
     echo "  Run 'make setup' (recommended) or 'make config' to generate config.yaml."
     exit 1
 fi
@@ -215,7 +215,7 @@ sync_frontend_env
 
 echo ""
 echo "=========================================="
-echo "  Starting DeerFlow"
+echo "  Starting Kiwi"
 echo "=========================================="
 echo ""
 echo "  Mode: $MODE_LABEL"
@@ -304,7 +304,7 @@ run_service "Nginx" \
 
 echo ""
 echo "=========================================="
-echo "  ✓ DeerFlow is running!  [$MODE_LABEL]"
+echo "  ✓ Kiwi is running!  [$MODE_LABEL]"
 echo "=========================================="
 echo ""
 echo "  🌐 http://localhost:2026"

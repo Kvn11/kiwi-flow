@@ -19,7 +19,7 @@ def setup_agent(
     runtime: ToolRuntime,
     skills: list[str] | None = None,
 ) -> Command:
-    """Setup the custom DeerFlow agent.
+    """Setup the custom Kiwi agent.
 
     Args:
         soul: Full SOUL.md content defining the agent's personality and behavior.

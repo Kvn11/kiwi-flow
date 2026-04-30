@@ -910,7 +910,7 @@ class TestChannelManager:
         _run(go())
 
     def test_each_topic_creates_new_thread(self):
-        """Messages with distinct topic_ids should each create a new DeerFlow thread."""
+        """Messages with distinct topic_ids should each create a new Kiwi thread."""
         from app.channels.manager import ChannelManager
 
         async def go():
@@ -962,7 +962,7 @@ class TestChannelManager:
         _run(go())
 
     def test_same_topic_reuses_thread(self):
-        """Messages with the same topic_id should reuse the same DeerFlow thread."""
+        """Messages with the same topic_id should reuse the same Kiwi thread."""
         from app.channels.manager import ChannelManager
 
         async def go():

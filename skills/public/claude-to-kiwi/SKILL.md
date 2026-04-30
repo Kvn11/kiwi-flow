@@ -1,16 +1,16 @@
 ---
 name: claude-to-kiwi
-description: "Interact with DeerFlow AI agent platform via its HTTP API. Use this skill when the user wants to send messages or questions to DeerFlow for research/analysis, start a DeerFlow conversation thread, check DeerFlow status or health, list available models/skills/agents in DeerFlow, manage DeerFlow memory, upload files to DeerFlow threads, or delegate complex research tasks to DeerFlow. Also use when the user mentions kiwi, deer flow, or wants to run a deep research task that DeerFlow can handle."
+description: "Interact with Kiwi AI agent platform via its HTTP API. Use this skill when the user wants to send messages or questions to Kiwi for research/analysis, start a Kiwi conversation thread, check Kiwi status or health, list available models/skills/agents in Kiwi, manage Kiwi memory, upload files to Kiwi threads, or delegate complex research tasks to Kiwi. Also use when the user mentions kiwi, deer flow, or wants to run a deep research task that Kiwi can handle."
 ---
 
-# DeerFlow Skill
+# Kiwi Skill
 
-Communicate with a running DeerFlow instance via its HTTP API. DeerFlow is an AI agent platform
+Communicate with a running Kiwi instance via its HTTP API. Kiwi is an AI agent platform
 built on LangGraph that orchestrates sub-agents for research, code execution, web browsing, and more.
 
 ## Architecture
 
-DeerFlow exposes two API surfaces behind an Nginx reverse proxy:
+Kiwi exposes two API surfaces behind an Nginx reverse proxy:
 
 | Service        | Direct Port | Via Proxy                        | Purpose                          |
 |----------------|-------------|----------------------------------|----------------------------------|
@@ -40,7 +40,7 @@ KIWI_LANGGRAPH_URL="${KIWI_LANGGRAPH_URL:-$KIWI_URL/api/langgraph}"
 
 ### 1. Health Check
 
-Verify DeerFlow is running:
+Verify Kiwi is running:
 
 ```bash
 curl -s "$KIWI_GATEWAY_URL/health"
@@ -205,7 +205,7 @@ The stream returns SSE events. To extract the final AI response from a `values` 
 
 ## Error Handling
 
-- If health check fails, DeerFlow is not running. Inform the user they need to start it.
+- If health check fails, Kiwi is not running. Inform the user they need to start it.
 - If the stream returns an error event, extract and display the error message.
 - Common issues: port not open, services still starting up, config errors.
 

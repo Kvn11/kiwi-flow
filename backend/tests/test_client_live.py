@@ -1,4 +1,4 @@
-"""Live integration tests for DeerFlowClient with real API.
+"""Live integration tests for KiwiClient with real API.
 
 These tests require a working config.yaml with valid API credentials.
 They are skipped in CI and must be run explicitly:
@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from kiwi.client import DeerFlowClient, StreamEvent
+from kiwi.client import KiwiClient, StreamEvent
 from kiwi.sandbox.security import is_host_bash_allowed
 from kiwi.uploads.manager import PathTraversalError
 
@@ -33,8 +33,8 @@ if _skip_reason:
 
 @pytest.fixture(scope="module")
 def client():
-    """Create a real DeerFlowClient (no mocks)."""
-    return DeerFlowClient(thinking_enabled=False)
+    """Create a real KiwiClient (no mocks)."""
+    return KiwiClient(thinking_enabled=False)
 
 
 @pytest.fixture

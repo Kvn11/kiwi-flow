@@ -342,7 +342,7 @@ librarySkills: {
     "Manage the on-demand skill library. Disabled skills are excluded from skill_search results.",
   emptyTitle: "No library skills yet",
   emptyDescription:
-    "Put skill folders under the `skill-library/` directory at the root of DeerFlow. Each skill needs a `SKILL.md` file.",
+    "Put skill folders under the `skill-library/` directory at the root of Kiwi. Each skill needs a `SKILL.md` file.",
 },
 ```
 
@@ -370,7 +370,7 @@ librarySkills: {
   description: "管理按需技能库。被禁用的技能将不会出现在 skill_search 的搜索结果中。",
   emptyTitle: "技能库为空",
   emptyDescription:
-    "将技能文件夹放在 DeerFlow 根目录下的 `skill-library/` 目录中。每个技能需要包含一个 `SKILL.md` 文件。",
+    "将技能文件夹放在 Kiwi 根目录下的 `skill-library/` 目录中。每个技能需要包含一个 `SKILL.md` 文件。",
 },
 ```
 

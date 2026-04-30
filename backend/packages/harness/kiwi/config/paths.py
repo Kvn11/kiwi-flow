@@ -10,7 +10,7 @@ _SAFE_THREAD_ID_RE = re.compile(r"^[A-Za-z0-9_\-]+$")
 
 
 def _default_local_base_dir() -> Path:
-    """Return the repo-local DeerFlow state directory without relying on cwd."""
+    """Return the repo-local Kiwi state directory without relying on cwd."""
     backend_dir = Path(__file__).resolve().parents[4]
     return backend_dir / ".kiwi-flow"
 
@@ -52,7 +52,7 @@ def join_host_path(base: str, *parts: str) -> str:
 
 class Paths:
     """
-    Centralized path configuration for DeerFlow application data.
+    Centralized path configuration for Kiwi application data.
 
     Directory layout (host side):
         {base_dir}/

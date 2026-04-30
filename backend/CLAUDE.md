@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-DeerFlow is a LangGraph-based AI super agent system with a full-stack architecture. The backend provides a "super agent" with sandbox execution, persistent memory, subagent delegation, and extensible tool integration - all operating in per-thread isolated environments.
+Kiwi is a LangGraph-based AI super agent system with a full-stack architecture. The backend provides a "super agent" with sandbox execution, persistent memory, subagent delegation, and extensible tool integration - all operating in per-thread isolated environments.
 
 **Architecture**:
 - **LangGraph Server** (port 2024): Agent runtime and workflow execution
@@ -19,7 +19,7 @@ DeerFlow is a LangGraph-based AI super agent system with a full-stack architectu
 
 **Project Structure**:
 ```
-deer-flow/
+kiwi-flow/
 ├── Makefile                    # Root commands (check, install, dev, stop)
 ├── config.yaml                 # Main application configuration
 ├── extensions_config.json      # MCP servers and skills configuration
@@ -52,7 +52,7 @@ deer-flow/
 │   │           ├── community/         # Community tools (tavily, jina_ai, firecrawl, image_search, aio_sandbox)
 │   │           ├── reflection/        # Dynamic module loading (resolve_variable, resolve_class)
 │   │           ├── utils/             # Utilities (network, readability)
-│   │           └── client.py          # Embedded Python client (DeerFlowClient)
+│   │           └── client.py          # Embedded Python client (KiwiClient)
 │   ├── app/                   # Application layer (import: app.*)
 │   │   ├── gateway/           # FastAPI Gateway API
 │   │   │   ├── app.py         # FastAPI application
@@ -221,7 +221,7 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Skills** (`/api/skills`) | `GET /` - list skills; `GET /{name}` - details; `PUT /{name}` - update enabled; `POST /install` - install from .skill archive (accepts standard optional frontmatter like `version`, `author`, `compatibility`) |
 | **Memory** (`/api/memory`) | `GET /` - memory data; `POST /reload` - force reload; `GET /config` - config; `GET /status` - config + data |
 | **Uploads** (`/api/threads/{id}/uploads`) | `POST /` - upload files (auto-converts PDF/PPT/Excel/Word); `GET /list` - list; `DELETE /{filename}` - delete |
-| **Threads** (`/api/threads/{id}`) | `DELETE /` - remove DeerFlow-managed local thread data after LangGraph thread deletion; unexpected failures are logged server-side and return a generic 500 detail |
+| **Threads** (`/api/threads/{id}`) | `DELETE /` - remove Kiwi-managed local thread data after LangGraph thread deletion; unexpected failures are logged server-side and return a generic 500 detail |
 | **Artifacts** (`/api/threads/{id}/artifacts`) | `GET /{path}` - serve artifacts; active content types (`text/html`, `application/xhtml+xml`, `image/svg+xml`) are always forced as download attachments to reduce XSS risk; `?download=true` still forces download for other file types |
 | **Suggestions** (`/api/threads/{id}/suggestions`) | `POST /` - generate follow-up questions; rich list/block model content is normalized before JSON parsing |
 
@@ -237,7 +237,7 @@ Proxied through nginx: `/api/langgraph/*` → LangGraph, all other `/api/*` → 
 
 **Virtual Path System**:
 - Agent sees: `/mnt/user-data/{workspace,uploads,outputs}`, `/mnt/skills`
-- Physical: `backend/.kiwi-flow/threads/{thread_id}/user-data/...`, `deer-flow/skills/`
+- Physical: `backend/.kiwi-flow/threads/{thread_id}/user-data/...`, `kiwi-flow/skills/`
 - Translation: `replace_virtual_path()` / `replace_virtual_paths_in_command()`
 - Detection: `is_local_sandbox()` checks `sandbox_id == "local"`
 
@@ -291,7 +291,7 @@ Proxied through nginx: `/api/langgraph/*` → LangGraph, all other `/api/*` → 
 
 ### Skills System (`packages/harness/kiwi/skills/`)
 
-- **Location**: `deer-flow/skills/{public,custom}/`
+- **Location**: `kiwi-flow/skills/{public,custom}/`
 - **Format**: Directory with `SKILL.md` (YAML frontmatter: name, description, license, allowed-tools)
 - **Loading**: `load_skills()` recursively scans `skills/{public,custom}` for `SKILL.md`, parses metadata, and reads enabled state from extensions_config.json
 - **Injection**: Enabled skills listed in agent system prompt with container paths
@@ -301,7 +301,7 @@ Proxied through nginx: `/api/langgraph/*` → LangGraph, all other `/api/*` → 
 
 A second class of skills for specialized workflows that should NOT pay the per-turn token cost of being in the system prompt. The agent discovers them on demand via the `skill_search` tool.
 
-- **Location**: `deer-flow/skill-library/<skill-name>/SKILL.md` (FLAT layout — no public/custom split)
+- **Location**: `kiwi-flow/skill-library/<skill-name>/SKILL.md` (FLAT layout — no public/custom split)
 - **Format**: Same `SKILL.md` shape as `skills/` (YAML frontmatter parsed by the same `parse_skill_file`)
 - **Mount**: `/mnt/skill-library/<skill-name>/SKILL.md` (read-only, configured at `skill_library.container_path`)
 - **Discovery**: `skill_search(query)` LangChain tool — supports `select:name1,name2`, `+keyword rest`, or plain regex; returns up to 5 `{name, description, path}` matches
@@ -309,7 +309,7 @@ A second class of skills for specialized workflows that should NOT pay the per-t
 - **Enable/disable**: per-skill toggle in `extensions_config.json` under `librarySkills`; defaults to enabled when absent
 - **Master switch**: `skill_library.enabled` in `config.yaml` (default true). When disabled, `skill_search` is not bound.
 - **Gateway**: `GET /api/library-skills`, `GET /api/library-skills/{name}`, `PUT /api/library-skills/{name}` (toggle). Toggling resets the in-process registry cache. Individual library skills do not appear in the system prompt, but the lead-agent prompt's `<discover_system>` section is gated on whether the registry has any enabled skills (see `_is_skill_library_active()` in `agents/lead_agent/prompt.py`); since `_build_discover_section()` is uncached and re-reads the registry every render, no separate prompt-cache invalidation is needed.
-- **Summarization**: library `read_file` calls are preserved across context summarization just like `/mnt/skills` reads (see `DeerFlowSummarizationMiddleware._skill_roots`).
+- **Summarization**: library `read_file` calls are preserved across context summarization just like `/mnt/skills` reads (see `KiwiSummarizationMiddleware._skill_roots`).
 - **Subagents**: there is no parallel for `_merge_skill_allowlists` — subagents access the library by having `skill_search` in their tool whitelist. To deny library access for a subagent, omit `skill_search` from its tools.
 
 **When to choose `skills/` vs `skill-library/`:**
@@ -333,7 +333,7 @@ A second class of skills for specialized workflows that should NOT pay the per-t
 
 ### IM Channels System (`app/channels/`)
 
-Bridges external messaging platforms (Feishu, Slack, Telegram) to the DeerFlow agent via the LangGraph Server.
+Bridges external messaging platforms (Feishu, Slack, Telegram) to the Kiwi agent via the LangGraph Server.
 
 **Architecture**: Channels communicate with the LangGraph Server through `langgraph-sdk` HTTP client (same as the frontend), ensuring threads are created and managed server-side.
 
@@ -399,7 +399,7 @@ Focused regression coverage for the updater lives in `backend/tests/test_memory_
 
 **`config.yaml`** key sections:
 - `models[]` - LLM configs with `use` class path, `supports_thinking`, `supports_vision`, provider-specific fields
-- vLLM reasoning models should use `kiwi.models.vllm_provider:VllmChatModel`; for Qwen-style parsers prefer `when_thinking_enabled.extra_body.chat_template_kwargs.enable_thinking`, and DeerFlow will also normalize the older `thinking` alias
+- vLLM reasoning models should use `kiwi.models.vllm_provider:VllmChatModel`; for Qwen-style parsers prefer `when_thinking_enabled.extra_body.chat_template_kwargs.enable_thinking`, and Kiwi will also normalize the older `thinking` alias
 - `tools[]` - Tool configs with `use` variable path and `group`
 - `tool_groups[]` - Logical groupings for tools
 - `sandbox.use` - Sandbox provider class path
@@ -413,11 +413,11 @@ Focused regression coverage for the updater lives in `backend/tests/test_memory_
 - `mcpServers` - Map of server name → config (enabled, type, command, args, env, url, headers, oauth, description)
 - `skills` - Map of skill name → state (enabled)
 
-Both can be modified at runtime via Gateway API endpoints or `DeerFlowClient` methods.
+Both can be modified at runtime via Gateway API endpoints or `KiwiClient` methods.
 
 ### Embedded Client (`packages/harness/kiwi/client.py`)
 
-`DeerFlowClient` provides direct in-process access to all DeerFlow capabilities without HTTP services. All return types align with the Gateway API response schemas, so consumer code works identically in HTTP and embedded modes.
+`KiwiClient` provides direct in-process access to all Kiwi capabilities without HTTP services. All return types align with the Gateway API response schemas, so consumer code works identically in HTTP and embedded modes.
 
 **Architecture**: Imports the same `kiwi` modules that LangGraph Server and Gateway API use. Shares the same config files and data directories. No FastAPI dependency.
 
@@ -431,7 +431,7 @@ Both can be modified at runtime via Gateway API endpoints or `DeerFlowClient` me
 - Agent created lazily via `create_agent()` + `_build_middlewares()`, same as `make_lead_agent`
 - Supports `checkpointer` parameter for state persistence across turns
 - `reset_agent()` forces agent recreation (e.g. after memory or skill changes)
-- See [docs/STREAMING.md](docs/STREAMING.md) for the full design: why Gateway and DeerFlowClient are parallel paths, LangGraph's `stream_mode` semantics, the per-id dedup invariants, and regression testing strategy
+- See [docs/STREAMING.md](docs/STREAMING.md) for the full design: why Gateway and KiwiClient are parallel paths, LangGraph's `stream_mode` semantics, the per-id dedup invariants, and regression testing strategy
 
 **Gateway Equivalent Methods** (replaces Gateway API):
 
@@ -444,7 +444,7 @@ Both can be modified at runtime via Gateway API endpoints or `DeerFlowClient` me
 | Uploads | `upload_files(thread_id, files)`, `list_uploads(thread_id)`, `delete_upload(thread_id, filename)` | `{"success": true, "files": [...]}`, `{"files": [...], "count": N}` |
 | Artifacts | `get_artifact(thread_id, path)` → `(bytes, mime_type)` | tuple |
 
-**Key difference from Gateway**: Upload accepts local `Path` objects instead of HTTP `UploadFile`, rejects directory paths before copying, and reuses a single worker when document conversion must run inside an active event loop. Artifact returns `(bytes, mime_type)` instead of HTTP Response. The new Gateway-only thread cleanup route deletes `.kiwi-flow/threads/{thread_id}` after LangGraph thread deletion; there is no matching `DeerFlowClient` method yet. `update_mcp_config()` and `update_skill()` automatically invalidate the cached agent.
+**Key difference from Gateway**: Upload accepts local `Path` objects instead of HTTP `UploadFile`, rejects directory paths before copying, and reuses a single worker when document conversion must run inside an active event loop. Artifact returns `(bytes, mime_type)` instead of HTTP Response. The new Gateway-only thread cleanup route deletes `.kiwi-flow/threads/{thread_id}` after LangGraph thread deletion; there is no matching `KiwiClient` method yet. `update_mcp_config()` and `update_skill()` automatically invalidate the cached agent.
 
 **Tests**: `tests/test_client.py` (77 unit tests including `TestGatewayConformance`), `tests/test_client_live.py` (live integration tests, requires config.yaml)
 

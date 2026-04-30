@@ -1,10 +1,10 @@
 # API Reference
 
-This document provides a complete reference for the DeerFlow backend APIs.
+This document provides a complete reference for the Kiwi backend APIs.
 
 ## Overview
 
-DeerFlow backend exposes two sets of APIs:
+Kiwi backend exposes two sets of APIs:
 
 1. **LangGraph API** - Agent interactions, threads, and streaming (`/api/langgraph/*`)
 2. **Gateway API** - Models, MCP, skills, uploads, and artifacts (`/api/*`)
@@ -110,7 +110,7 @@ too low for plan-mode or subagent-heavy runs — the agent typically errors out
 with `GraphRecursionError` after the first round of subagent results comes
 back, before the lead agent can synthesize the final answer.
 
-DeerFlow's own Gateway and IM-channel paths mitigate this by defaulting to
+Kiwi's own Gateway and IM-channel paths mitigate this by defaulting to
 `100` in `build_run_config` (see `backend/app/gateway/services.py`), but
 clients calling the LangGraph API directly must set `recursion_limit`
 explicitly in the request body. `100` matches the Gateway default and is a
@@ -482,7 +482,7 @@ DELETE /api/threads/{thread_id}/uploads/{filename}
 
 ### Thread Cleanup
 
-Remove DeerFlow-managed local thread files under `.kiwi-flow/threads/{thread_id}` after the LangGraph thread itself has been deleted.
+Remove Kiwi-managed local thread files under `.kiwi-flow/threads/{thread_id}` after the LangGraph thread itself has been deleted.
 
 ```http
 DELETE /api/threads/{thread_id}
@@ -541,9 +541,9 @@ All APIs return errors in a consistent format:
 
 ## Authentication
 
-Currently, DeerFlow does not implement authentication. All APIs are accessible without credentials.
+Currently, Kiwi does not implement authentication. All APIs are accessible without credentials.
 
-Note: This is about DeerFlow API authentication. MCP outbound connections can still use OAuth for configured HTTP/SSE MCP servers.
+Note: This is about Kiwi API authentication. MCP outbound connections can still use OAuth for configured HTTP/SSE MCP servers.
 
 For production deployments, it is recommended to:
 1. Use Nginx for basic auth or OAuth integration
@@ -649,7 +649,7 @@ curl -X POST http://localhost:2026/api/langgraph/threads/abc123/runs \
   }'
 ```
 
-> The `/api/langgraph/*` endpoints bypass DeerFlow's Gateway and inherit
+> The `/api/langgraph/*` endpoints bypass Kiwi's Gateway and inherit
 > LangGraph's native `recursion_limit` default of 25, which is too low for
 > plan-mode or subagent runs. Set `config.recursion_limit` explicitly — see
 > the [Create Run](#create-run) section for details.

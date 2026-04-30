@@ -12,7 +12,7 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "deer-flow",
+    "kiwi-flow",
     "kiwi-harness",
 ]
 
@@ -666,7 +666,7 @@ wheels = [
 ]
 
 [[package]]
-name = "deer-flow"
+name = "kiwi-flow"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

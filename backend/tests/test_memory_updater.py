@@ -88,7 +88,7 @@ def test_apply_updates_skips_same_batch_duplicates_and_keeps_source_metadata() -
         "newFacts": [
             {"content": "User prefers dark mode", "category": "preference", "confidence": 0.91},
             {"content": "User prefers dark mode", "category": "preference", "confidence": 0.92},
-            {"content": "User works on DeerFlow", "category": "context", "confidence": 0.87},
+            {"content": "User works on Kiwi", "category": "context", "confidence": 0.87},
         ],
     }
 
@@ -100,7 +100,7 @@ def test_apply_updates_skips_same_batch_duplicates_and_keeps_source_metadata() -
 
     assert [fact["content"] for fact in result["facts"]] == [
         "User prefers dark mode",
-        "User works on DeerFlow",
+        "User works on Kiwi",
     ]
     assert all(fact["id"].startswith("fact_") for fact in result["facts"])
     assert all(fact["source"] == "thread-42" for fact in result["facts"])
@@ -290,7 +290,7 @@ def test_import_memory_data_saves_and_returns_imported_memory() -> None:
         facts=[
             {
                 "id": "fact_import",
-                "content": "User works on DeerFlow.",
+                "content": "User works on Kiwi.",
                 "category": "context",
                 "confidence": 0.87,
                 "createdAt": "2026-03-20T00:00:00Z",

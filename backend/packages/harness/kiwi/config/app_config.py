@@ -47,7 +47,7 @@ def _default_config_candidates() -> tuple[Path, ...]:
 
 
 class AppConfig(BaseModel):
-    """Config for the DeerFlow application"""
+    """Config for the Kiwi application"""
 
     log_level: str = Field(default="info", description="Logging level for kiwi modules (debug/info/warning/error)")
     token_usage: TokenUsageConfig = Field(default_factory=TokenUsageConfig, description="Token usage tracking configuration")
@@ -300,7 +300,7 @@ def _load_and_cache_app_config(config_path: str | None = None) -> AppConfig:
 
 
 def get_app_config() -> AppConfig:
-    """Get the DeerFlow config instance.
+    """Get the Kiwi config instance.
 
     Returns a cached singleton instance and automatically reloads it when the
     underlying config file path or modification time changes. Use

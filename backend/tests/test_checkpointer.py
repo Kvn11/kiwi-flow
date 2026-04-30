@@ -303,16 +303,16 @@ class TestAppConfigLoadsCheckpointer:
 
 
 # ---------------------------------------------------------------------------
-# DeerFlowClient falls back to config checkpointer
+# KiwiClient falls back to config checkpointer
 # ---------------------------------------------------------------------------
 
 
 class TestClientCheckpointerFallback:
     def test_client_uses_config_checkpointer_when_none_provided(self):
-        """DeerFlowClient._ensure_agent falls back to get_checkpointer() when checkpointer=None."""
+        """KiwiClient._ensure_agent falls back to get_checkpointer() when checkpointer=None."""
         from langgraph.checkpoint.memory import InMemorySaver
 
-        from kiwi.client import DeerFlowClient
+        from kiwi.client import KiwiClient
 
         load_checkpointer_config_from_dict({"type": "memory"})
 
@@ -334,9 +334,9 @@ class TestClientCheckpointerFallback:
             patch("kiwi.client.create_chat_model", return_value=MagicMock()),
             patch("kiwi.client._build_middlewares", return_value=[]),
             patch("kiwi.client.apply_prompt_template", return_value=""),
-            patch("kiwi.client.DeerFlowClient._get_tools", return_value=[]),
+            patch("kiwi.client.KiwiClient._get_tools", return_value=[]),
         ):
-            client = DeerFlowClient(checkpointer=None)
+            client = KiwiClient(checkpointer=None)
             config = client._get_runnable_config("test-thread")
             client._ensure_agent(config)
 
@@ -345,7 +345,7 @@ class TestClientCheckpointerFallback:
 
     def test_client_explicit_checkpointer_takes_precedence(self):
         """An explicitly provided checkpointer is used even when config checkpointer is set."""
-        from kiwi.client import DeerFlowClient
+        from kiwi.client import KiwiClient
 
         load_checkpointer_config_from_dict({"type": "memory"})
 
@@ -368,9 +368,9 @@ class TestClientCheckpointerFallback:
             patch("kiwi.client.create_chat_model", return_value=MagicMock()),
             patch("kiwi.client._build_middlewares", return_value=[]),
             patch("kiwi.client.apply_prompt_template", return_value=""),
-            patch("kiwi.client.DeerFlowClient._get_tools", return_value=[]),
+            patch("kiwi.client.KiwiClient._get_tools", return_value=[]),
         ):
-            client = DeerFlowClient(checkpointer=explicit_cp)
+            client = KiwiClient(checkpointer=explicit_cp)
             config = client._get_runnable_config("test-thread")
             client._ensure_agent(config)
 

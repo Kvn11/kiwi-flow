@@ -1,6 +1,6 @@
 # Architecture Overview
 
-This document provides a comprehensive overview of the DeerFlow backend architecture.
+This document provides a comprehensive overview of the Kiwi backend architecture.
 
 ## System Architecture
 
@@ -87,11 +87,11 @@ FastAPI application providing REST endpoints for non-agent operations.
 - `mcp.py` - `/api/mcp` - MCP server configuration
 - `skills.py` - `/api/skills` - Skills management
 - `uploads.py` - `/api/threads/{id}/uploads` - File upload
-- `threads.py` - `/api/threads/{id}` - Local DeerFlow thread data cleanup after LangGraph deletion
+- `threads.py` - `/api/threads/{id}` - Local Kiwi thread data cleanup after LangGraph deletion
 - `artifacts.py` - `/api/threads/{id}/artifacts` - Artifact serving
 - `suggestions.py` - `/api/threads/{id}/suggestions` - Follow-up suggestion generation
 
-The web conversation delete flow is now split across both backend surfaces: LangGraph handles `DELETE /api/langgraph/threads/{thread_id}` for thread state, then the Gateway `threads.py` router removes DeerFlow-managed filesystem data via `Paths.delete_thread_dir()`.
+The web conversation delete flow is now split across both backend surfaces: LangGraph handles `DELETE /api/langgraph/threads/{thread_id}` for thread state, then the Gateway `threads.py` router removes Kiwi-managed filesystem data via `Paths.delete_thread_dir()`.
 
 ### Agent Architecture
 
@@ -135,7 +135,7 @@ class ThreadState(AgentState):
     # Core state from AgentState
     messages: list[BaseMessage]
 
-    # DeerFlow extensions
+    # Kiwi extensions
     sandbox: dict             # Sandbox environment info
     artifacts: list[str]      # Generated file paths
     thread_data: dict         # {workspace, uploads, outputs} paths
@@ -186,7 +186,7 @@ class ThreadState(AgentState):
 | `/mnt/user-data/workspace` | `backend/.kiwi-flow/threads/{thread_id}/user-data/workspace` |
 | `/mnt/user-data/uploads` | `backend/.kiwi-flow/threads/{thread_id}/user-data/uploads` |
 | `/mnt/user-data/outputs` | `backend/.kiwi-flow/threads/{thread_id}/user-data/outputs` |
-| `/mnt/skills` | `deer-flow/skills/` |
+| `/mnt/skills` | `kiwi-flow/skills/` |
 
 ### Tool System
 
@@ -418,7 +418,7 @@ SKILL.md Format:
 2. Web UI follows up with Gateway cleanup
    DELETE /api/threads/{thread_id}
 
-3. Gateway removes local DeerFlow-managed files
+3. Gateway removes local Kiwi-managed files
    - Deletes .kiwi-flow/threads/{thread_id}/ recursively
    - Missing directories are treated as a no-op
    - Invalid thread IDs are rejected before filesystem access

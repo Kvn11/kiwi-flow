@@ -1,4 +1,4 @@
-# DeerFlow - Unified Development Environment
+# Kiwi - Unified Development Environment
 
 .PHONY: help config config-upgrade check install setup doctor dev dev-pro dev-daemon dev-daemon-pro start start-pro start-daemon start-daemon-pro stop up up-pro down clean docker-init docker-start docker-start-pro docker-stop docker-logs docker-logs-frontend docker-logs-gateway
 
@@ -17,7 +17,7 @@ else
 endif
 
 help:
-	@echo "DeerFlow Development Commands:"
+	@echo "Kiwi Development Commands:"
 	@echo "  make setup           - Interactive setup wizard (recommended for new users)"
 	@echo "  make doctor          - Check configuration and system requirements"
 	@echo "  make config          - Generate local config files (aborts if config already exists)"

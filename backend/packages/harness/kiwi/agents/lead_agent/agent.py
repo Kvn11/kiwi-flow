@@ -10,7 +10,7 @@ from kiwi.agents.middlewares.clarification_middleware import ClarificationMiddle
 from kiwi.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
 from kiwi.agents.middlewares.memory_middleware import MemoryMiddleware
 from kiwi.agents.middlewares.subagent_limit_middleware import SubagentLimitMiddleware
-from kiwi.agents.middlewares.summarization_middleware import BeforeSummarizationHook, DeerFlowSummarizationMiddleware
+from kiwi.agents.middlewares.summarization_middleware import BeforeSummarizationHook, KiwiSummarizationMiddleware
 from kiwi.agents.middlewares.title_middleware import TitleMiddleware
 from kiwi.agents.middlewares.todo_middleware import TodoMiddleware
 from kiwi.agents.middlewares.token_usage_middleware import TokenUsageMiddleware
@@ -50,7 +50,7 @@ def _resolve_model_name(requested_model_name: str | None = None) -> str:
     return default_model_name
 
 
-def _create_summarization_middleware() -> DeerFlowSummarizationMiddleware | None:
+def _create_summarization_middleware() -> KiwiSummarizationMiddleware | None:
     """Create and configure the summarization middleware from config."""
     config = get_summarization_config()
 
@@ -94,7 +94,7 @@ def _create_summarization_middleware() -> DeerFlowSummarizationMiddleware | None
         hooks.append(memory_flush_hook)
 
     # The logic below relies on two assumptions holding true: this factory is
-    # the sole entry point for DeerFlowSummarizationMiddleware, and the runtime
+    # the sole entry point for KiwiSummarizationMiddleware, and the runtime
     # config is not expected to change after startup.
     try:
         skills_container_path = get_app_config().skills.container_path or "/mnt/skills"
@@ -108,7 +108,7 @@ def _create_summarization_middleware() -> DeerFlowSummarizationMiddleware | None
         logger.exception("Failed to resolve skill_library container path; falling back to default")
         skill_library_container_path = "/mnt/skill-library"
 
-    return DeerFlowSummarizationMiddleware(
+    return KiwiSummarizationMiddleware(
         **kwargs,
         skills_container_path=skills_container_path,
         skill_library_container_path=skill_library_container_path,
@@ -132,7 +132,7 @@ def _create_todo_list_middleware(is_plan_mode: bool) -> TodoMiddleware | None:
     if not is_plan_mode:
         return None
 
-    # Custom prompts matching DeerFlow's style
+    # Custom prompts matching Kiwi's style
     system_prompt = """
 <todo_list_system>
 You have access to the `write_todos` tool to help you manage and track complex multi-step objectives.

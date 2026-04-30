@@ -12,7 +12,7 @@ Kiwi inherits the **MIT License** from the upstream project.
 
 ## 🙌 Acknowledgments
 
-Kiwi stands on the shoulders of giants — most directly the original DeerFlow project and its authors:
+Kiwi stands on the shoulders of giants — most directly the original Kiwi project and its authors:
 
 - **[Daniel Walnut](https://github.com/hetaoBackend/)**
 - **[Henry Li](https://github.com/magiccube/)**

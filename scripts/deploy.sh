@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# deploy.sh - Build, start, or stop DeerFlow production services
+# deploy.sh - Build, start, or stop Kiwi production services
 #
 # Commands:
 #   deploy.sh [--MODE]           — build + start (default: --standard)
@@ -57,7 +57,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
 DOCKER_DIR="$REPO_ROOT/docker"
-COMPOSE_CMD=(docker compose -p deer-flow -f "$DOCKER_DIR/docker-compose.yaml")
+COMPOSE_CMD=(docker compose -p kiwi-flow -f "$DOCKER_DIR/docker-compose.yaml")
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 
@@ -196,7 +196,7 @@ fi
 
 if [ "$CMD" = "build" ]; then
     echo "=========================================="
-    echo "  DeerFlow — Building Images"
+    echo "  Kiwi — Building Images"
     echo "=========================================="
     echo ""
 
@@ -220,7 +220,7 @@ fi
 # ── Banner ────────────────────────────────────────────────────────────────────
 
 echo "=========================================="
-echo "  DeerFlow Production Deployment"
+echo "  Kiwi Production Deployment"
 echo "=========================================="
 echo ""
 
@@ -282,7 +282,7 @@ fi
 
 echo ""
 echo "=========================================="
-echo "  DeerFlow is running! ($RUNTIME_MODE mode)"
+echo "  Kiwi is running! ($RUNTIME_MODE mode)"
 echo "=========================================="
 echo ""
 echo "  🌐 Application: http://localhost:${PORT:-2026}"

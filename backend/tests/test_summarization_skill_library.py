@@ -1,4 +1,4 @@
-"""Tests that DeerFlowSummarizationMiddleware also rescues skill_library reads."""
+"""Tests that KiwiSummarizationMiddleware also rescues skill_library reads."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 from langchain_core.messages import AIMessage, HumanMessage, RemoveMessage, ToolMessage
 
-from kiwi.agents.middlewares.summarization_middleware import DeerFlowSummarizationMiddleware
+from kiwi.agents.middlewares.summarization_middleware import KiwiSummarizationMiddleware
 
 
 def _runtime() -> SimpleNamespace:
@@ -18,10 +18,10 @@ def _middleware(
     *,
     skills_container_path: str = "/mnt/skills",
     skill_library_container_path: str = "/mnt/skill-library",
-) -> DeerFlowSummarizationMiddleware:
+) -> KiwiSummarizationMiddleware:
     model = MagicMock()
     model.invoke.return_value = SimpleNamespace(text="compressed summary")
-    return DeerFlowSummarizationMiddleware(
+    return KiwiSummarizationMiddleware(
         model=model,
         trigger=("messages", 4),
         keep=("messages", 2),

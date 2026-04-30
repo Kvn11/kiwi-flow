@@ -1,4 +1,4 @@
-"""Summarization middleware extensions for DeerFlow."""
+"""Summarization middleware extensions for Kiwi."""
 
 from __future__ import annotations
 
@@ -95,7 +95,7 @@ class _SkillBundle:
     skill_key: str
 
 
-class DeerFlowSummarizationMiddleware(SummarizationMiddleware):
+class KiwiSummarizationMiddleware(SummarizationMiddleware):
     """Summarization middleware with pre-compression hook dispatch and skill rescue."""
 
     def __init__(

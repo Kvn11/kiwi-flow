@@ -15,9 +15,9 @@ from kiwi.sandbox.tools import (
 )
 
 _THREAD_DATA = {
-    "workspace_path": "/tmp/deer-flow/threads/t1/user-data/workspace",
-    "uploads_path": "/tmp/deer-flow/threads/t1/user-data/uploads",
-    "outputs_path": "/tmp/deer-flow/threads/t1/user-data/outputs",
+    "workspace_path": "/tmp/kiwi-flow/threads/t1/user-data/workspace",
+    "uploads_path": "/tmp/kiwi-flow/threads/t1/user-data/uploads",
+    "outputs_path": "/tmp/kiwi-flow/threads/t1/user-data/outputs",
 }
 
 
