@@ -46,7 +46,7 @@ The rest of the README documents how to set up and run the system. Most of it is
 1. **Clone the repository**
 
    ```bash
-   git clone <your-fork-url>
+   git clone <your-fork-url> kiwi-flow
    cd kiwi-flow
    ```
 
@@ -428,3 +428,5 @@ And the open-source frameworks that make this possible:
 - **[LangChain](https://github.com/langchain-ai/langchain)** — LLM interactions and chains
 - **[LangGraph](https://github.com/langchain-ai/langgraph)** — multi-agent orchestration
 - **[Next.js](https://nextjs.org/)** — web app framework
+- **[Shadcn](https://ui.shadcn.com/)** — UI components
+- **[SToneX](https://github.com/stonexer)** — token-by-token visual effects

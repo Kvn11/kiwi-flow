@@ -229,12 +229,10 @@ export const enUS: Translations = {
 
   // Workspace
   workspace: {
-    officialWebsite: "Kiwi's official website",
     githubTooltip: "Kiwi on Github",
     settingsAndMore: "Settings and more",
     visitGithub: "Kiwi on GitHub",
     reportIssue: "Report a issue",
-    contactUs: "Contact us",
     about: "About Kiwi",
   },
 
