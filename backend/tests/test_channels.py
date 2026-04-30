@@ -1987,8 +1987,8 @@ class TestChannelService:
     def test_service_urls_fall_back_to_env(self, monkeypatch):
         from app.channels.service import ChannelService
 
-        monkeypatch.setenv("DEER_FLOW_CHANNELS_LANGGRAPH_URL", "http://langgraph:2024")
-        monkeypatch.setenv("DEER_FLOW_CHANNELS_GATEWAY_URL", "http://gateway:8001")
+        monkeypatch.setenv("KIWI_FLOW_CHANNELS_LANGGRAPH_URL", "http://langgraph:2024")
+        monkeypatch.setenv("KIWI_FLOW_CHANNELS_GATEWAY_URL", "http://gateway:8001")
 
         service = ChannelService(channels_config={})
 
@@ -1998,8 +1998,8 @@ class TestChannelService:
     def test_config_service_urls_override_env(self, monkeypatch):
         from app.channels.service import ChannelService
 
-        monkeypatch.setenv("DEER_FLOW_CHANNELS_LANGGRAPH_URL", "http://langgraph:2024")
-        monkeypatch.setenv("DEER_FLOW_CHANNELS_GATEWAY_URL", "http://gateway:8001")
+        monkeypatch.setenv("KIWI_FLOW_CHANNELS_LANGGRAPH_URL", "http://langgraph:2024")
+        monkeypatch.setenv("KIWI_FLOW_CHANNELS_GATEWAY_URL", "http://gateway:8001")
 
         service = ChannelService(
             channels_config={

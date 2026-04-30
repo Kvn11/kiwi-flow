@@ -238,7 +238,7 @@ Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour le guide complet de développement 
 
 Si vous préférez lancer les services en local :
 
-Prérequis : complétez d'abord les étapes de « Configuration » ci-dessus (`make config` et clés API des modèles). `make dev` nécessite un fichier de configuration valide (par défaut `config.yaml` à la racine du projet ; modifiable via `DEER_FLOW_CONFIG_PATH`).
+Prérequis : complétez d'abord les étapes de « Configuration » ci-dessus (`make config` et clés API des modèles). `make dev` nécessite un fichier de configuration valide (par défaut `config.yaml` à la racine du projet ; modifiable via `KIWI_FLOW_CONFIG_PATH`).
 
 1. **Vérifier les prérequis** :
    ```bash
@@ -470,9 +470,9 @@ Assurez-vous ensuite que DeerFlow tourne (par défaut sur `http://localhost:2026
 **Variables d'environnement** (optionnel, pour des endpoints custom) :
 
 ```bash
-DEERFLOW_URL=http://localhost:2026            # Unified proxy base URL
-DEERFLOW_GATEWAY_URL=http://localhost:2026    # Gateway API
-DEERFLOW_LANGGRAPH_URL=http://localhost:2026/api/langgraph  # LangGraph API
+KIWI_URL=http://localhost:2026            # Unified proxy base URL
+KIWI_GATEWAY_URL=http://localhost:2026    # Gateway API
+KIWI_LANGGRAPH_URL=http://localhost:2026/api/langgraph  # LangGraph API
 ```
 
 Voir [`skills/public/claude-to-kiwi/SKILL.md`](skills/public/claude-to-kiwi/SKILL.md) pour la référence API complète.

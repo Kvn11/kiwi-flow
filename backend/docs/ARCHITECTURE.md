@@ -183,9 +183,9 @@ class ThreadState(AgentState):
 
 | Virtual Path | Physical Path |
 |-------------|---------------|
-| `/mnt/user-data/workspace` | `backend/.deer-flow/threads/{thread_id}/user-data/workspace` |
-| `/mnt/user-data/uploads` | `backend/.deer-flow/threads/{thread_id}/user-data/uploads` |
-| `/mnt/user-data/outputs` | `backend/.deer-flow/threads/{thread_id}/user-data/outputs` |
+| `/mnt/user-data/workspace` | `backend/.kiwi-flow/threads/{thread_id}/user-data/workspace` |
+| `/mnt/user-data/uploads` | `backend/.kiwi-flow/threads/{thread_id}/user-data/uploads` |
+| `/mnt/user-data/outputs` | `backend/.kiwi-flow/threads/{thread_id}/user-data/outputs` |
 | `/mnt/skills` | `deer-flow/skills/` |
 
 ### Tool System
@@ -390,14 +390,14 @@ SKILL.md Format:
 
 2. Gateway receives file
    - Validates file
-   - Stores in .deer-flow/threads/{thread_id}/user-data/uploads/
+   - Stores in .kiwi-flow/threads/{thread_id}/user-data/uploads/
    - If document: converts to Markdown via markitdown
 
 3. Returns response
    {
      "files": [{
        "filename": "doc.pdf",
-       "path": ".deer-flow/.../uploads/doc.pdf",
+       "path": ".kiwi-flow/.../uploads/doc.pdf",
        "virtual_path": "/mnt/user-data/uploads/doc.pdf",
        "artifact_url": "/api/threads/.../artifacts/mnt/.../doc.pdf"
      }]
@@ -419,7 +419,7 @@ SKILL.md Format:
    DELETE /api/threads/{thread_id}
 
 3. Gateway removes local DeerFlow-managed files
-   - Deletes .deer-flow/threads/{thread_id}/ recursively
+   - Deletes .kiwi-flow/threads/{thread_id}/ recursively
    - Missing directories are treated as a no-op
    - Invalid thread IDs are rejected before filesystem access
 ```

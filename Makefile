@@ -163,7 +163,7 @@ stop:
 # Clean up
 clean: stop
 	@echo "Cleaning up..."
-	@-rm -rf backend/.deer-flow 2>/dev/null || true
+	@-rm -rf backend/.kiwi-flow 2>/dev/null || true
 	@-rm -rf backend/.langgraph_api 2>/dev/null || true
 	@-rm -rf logs/*.log 2>/dev/null || true
 	@echo "✓ Cleanup complete"

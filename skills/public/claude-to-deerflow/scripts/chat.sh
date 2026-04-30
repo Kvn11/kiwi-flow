@@ -5,20 +5,20 @@
 #   bash chat.sh "Your question here"
 #   bash chat.sh "Your question" <thread_id>          # continue conversation
 #   bash chat.sh "Your question" "" pro                # specify mode
-#   DEERFLOW_URL=http://host:2026 bash chat.sh "hi"   # custom endpoint
+#   KIWI_URL=http://host:2026 bash chat.sh "hi"   # custom endpoint
 #
 # Environment variables:
-#   DEERFLOW_URL          — Unified proxy base URL (default: http://localhost:2026)
-#   DEERFLOW_GATEWAY_URL  — Gateway API base URL (default: $DEERFLOW_URL)
-#   DEERFLOW_LANGGRAPH_URL — LangGraph API base URL (default: $DEERFLOW_URL/api/langgraph)
+#   KIWI_URL          — Unified proxy base URL (default: http://localhost:2026)
+#   KIWI_GATEWAY_URL  — Gateway API base URL (default: $KIWI_URL)
+#   KIWI_LANGGRAPH_URL — LangGraph API base URL (default: $KIWI_URL/api/langgraph)
 #
 # Modes: flash, standard, pro (default), ultra
 
 set -euo pipefail
 
-DEERFLOW_URL="${DEERFLOW_URL:-http://localhost:2026}"
-GATEWAY_URL="${DEERFLOW_GATEWAY_URL:-$DEERFLOW_URL}"
-LANGGRAPH_URL="${DEERFLOW_LANGGRAPH_URL:-$DEERFLOW_URL/api/langgraph}"
+KIWI_URL="${KIWI_URL:-http://localhost:2026}"
+GATEWAY_URL="${KIWI_GATEWAY_URL:-$KIWI_URL}"
+LANGGRAPH_URL="${KIWI_LANGGRAPH_URL:-$KIWI_URL/api/langgraph}"
 MESSAGE="${1:?Usage: chat.sh <message> [thread_id] [mode]}"
 THREAD_ID="${2:-}"
 MODE="${3:-pro}"

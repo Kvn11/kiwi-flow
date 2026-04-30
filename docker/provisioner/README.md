@@ -287,7 +287,7 @@ docker exec deer-flow-gateway curl -s $SANDBOX_URL/v1/sandbox
 - Verify the paths exist on your host machine:
   ```bash
   ls -la /path/to/skills
-  ls -la /path/to/backend/.deer-flow/threads
+  ls -la /path/to/backend/.kiwi-flow/threads
   ```
 
 ### Issue: Pod stuck in "ContainerCreating"

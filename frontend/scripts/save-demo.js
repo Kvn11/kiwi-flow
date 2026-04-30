@@ -40,7 +40,7 @@ export async function main() {
   );
   const backendRootPath = path.resolve(
     process.cwd(),
-    "../backend/.deer-flow/threads",
+    "../backend/.kiwi-flow/threads",
     threadId,
   );
   copyFolder("user-data/outputs", rootPath, backendRootPath);

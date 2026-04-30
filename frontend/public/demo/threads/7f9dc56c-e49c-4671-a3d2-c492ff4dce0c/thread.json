@@ -1018,9 +1018,9 @@
       }
     ],
     "thread_data": {
-      "workspace_path": "/Users/henry/Desktop/deer-flow/backend/.deer-flow/threads/7f9dc56c-e49c-4671-a3d2-c492ff4dce0c/user-data/workspace",
-      "uploads_path": "/Users/henry/Desktop/deer-flow/backend/.deer-flow/threads/7f9dc56c-e49c-4671-a3d2-c492ff4dce0c/user-data/uploads",
-      "outputs_path": "/Users/henry/Desktop/deer-flow/backend/.deer-flow/threads/7f9dc56c-e49c-4671-a3d2-c492ff4dce0c/user-data/outputs"
+      "workspace_path": "/Users/henry/Desktop/deer-flow/backend/.kiwi-flow/threads/7f9dc56c-e49c-4671-a3d2-c492ff4dce0c/user-data/workspace",
+      "uploads_path": "/Users/henry/Desktop/deer-flow/backend/.kiwi-flow/threads/7f9dc56c-e49c-4671-a3d2-c492ff4dce0c/user-data/uploads",
+      "outputs_path": "/Users/henry/Desktop/deer-flow/backend/.kiwi-flow/threads/7f9dc56c-e49c-4671-a3d2-c492ff4dce0c/user-data/outputs"
     },
     "title": "Leica-Style Street Photography",
     "uploaded_files": [],

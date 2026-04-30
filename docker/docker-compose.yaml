@@ -9,11 +9,11 @@
 #   - provisioner: (optional) Sandbox provisioner for Kubernetes mode
 #
 # Key environment variables (set via environment/.env or scripts/deploy.sh):
-#   DEER_FLOW_HOME                   — runtime data dir, default $REPO_ROOT/backend/.deer-flow
-#   DEER_FLOW_CONFIG_PATH            — path to config.yaml
-#   DEER_FLOW_EXTENSIONS_CONFIG_PATH — path to extensions_config.json
-#   DEER_FLOW_DOCKER_SOCKET          — Docker socket path, default /var/run/docker.sock
-#   DEER_FLOW_REPO_ROOT              — repo root (used for skills host path in DooD)
+#   KIWI_FLOW_HOME                   — runtime data dir, default $REPO_ROOT/backend/.kiwi-flow
+#   KIWI_FLOW_CONFIG_PATH            — path to config.yaml
+#   KIWI_FLOW_EXTENSIONS_CONFIG_PATH — path to extensions_config.json
+#   KIWI_FLOW_DOCKER_SOCKET          — Docker socket path, default /var/run/docker.sock
+#   KIWI_FLOW_REPO_ROOT              — repo root (used for skills host path in DooD)
 #   BETTER_AUTH_SECRET               — required for frontend auth/session security
 #
 # LangSmith tracing is disabled by default (LANGSMITH_TRACING=false).
@@ -56,8 +56,8 @@ services:
     container_name: deer-flow-frontend
     environment:
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-      - DEER_FLOW_INTERNAL_GATEWAY_BASE_URL=http://gateway:8001
-      - DEER_FLOW_INTERNAL_LANGGRAPH_BASE_URL=http://langgraph:2024
+      - KIWI_FLOW_INTERNAL_GATEWAY_BASE_URL=http://gateway:8001
+      - KIWI_FLOW_INTERNAL_LANGGRAPH_BASE_URL=http://langgraph:2024
     env_file:
       - ../frontend/.env
     networks:
@@ -76,12 +76,12 @@ services:
     container_name: deer-flow-gateway
     command: sh -c "cd backend && PYTHONPATH=. uv run uvicorn app.gateway.app:app --host 0.0.0.0 --port 8001 --workers ${GATEWAY_WORKERS:-4}"
     volumes:
-      - ${DEER_FLOW_CONFIG_PATH}:/app/backend/config.yaml:ro
-      - ${DEER_FLOW_EXTENSIONS_CONFIG_PATH}:/app/backend/extensions_config.json:ro
+      - ${KIWI_FLOW_CONFIG_PATH}:/app/backend/config.yaml:ro
+      - ${KIWI_FLOW_EXTENSIONS_CONFIG_PATH}:/app/backend/extensions_config.json:ro
       - ../skills:/app/skills:ro
-      - ${DEER_FLOW_HOME}:/app/backend/.deer-flow
+      - ${KIWI_FLOW_HOME}:/app/backend/.kiwi-flow
       # DooD: AioSandboxProvider starts sandbox containers via host Docker daemon
-      - ${DEER_FLOW_DOCKER_SOCKET}:/var/run/docker.sock
+      - ${KIWI_FLOW_DOCKER_SOCKET}:/var/run/docker.sock
       # CLI auth directories for auto-auth (Claude Code + Codex CLI)
       - type: bind
         source: ${HOME:?HOME must be set}/.claude
@@ -98,15 +98,15 @@ services:
     working_dir: /app
     environment:
       - CI=true
-      - DEER_FLOW_HOME=/app/backend/.deer-flow
-      - DEER_FLOW_CONFIG_PATH=/app/backend/config.yaml
-      - DEER_FLOW_EXTENSIONS_CONFIG_PATH=/app/backend/extensions_config.json
-      - DEER_FLOW_CHANNELS_LANGGRAPH_URL=${DEER_FLOW_CHANNELS_LANGGRAPH_URL:-http://langgraph:2024}
-      - DEER_FLOW_CHANNELS_GATEWAY_URL=${DEER_FLOW_CHANNELS_GATEWAY_URL:-http://gateway:8001}
+      - KIWI_FLOW_HOME=/app/backend/.kiwi-flow
+      - KIWI_FLOW_CONFIG_PATH=/app/backend/config.yaml
+      - KIWI_FLOW_EXTENSIONS_CONFIG_PATH=/app/backend/extensions_config.json
+      - KIWI_FLOW_CHANNELS_LANGGRAPH_URL=${KIWI_FLOW_CHANNELS_LANGGRAPH_URL:-http://langgraph:2024}
+      - KIWI_FLOW_CHANNELS_GATEWAY_URL=${KIWI_FLOW_CHANNELS_GATEWAY_URL:-http://gateway:8001}
       # DooD path/network translation
-      - DEER_FLOW_HOST_BASE_DIR=${DEER_FLOW_HOME}
-      - DEER_FLOW_HOST_SKILLS_PATH=${DEER_FLOW_REPO_ROOT}/skills
-      - DEER_FLOW_SANDBOX_HOST=host.docker.internal
+      - KIWI_FLOW_HOST_BASE_DIR=${KIWI_FLOW_HOME}
+      - KIWI_FLOW_HOST_SKILLS_PATH=${KIWI_FLOW_REPO_ROOT}/skills
+      - KIWI_FLOW_SANDBOX_HOST=host.docker.internal
     env_file:
       - ../.env
     extra_hosts:
@@ -129,13 +129,13 @@ services:
     container_name: deer-flow-langgraph
     command: sh -c 'cd /app/backend && args="--no-browser --no-reload --host 0.0.0.0 --port 2024 --n-jobs-per-worker $${LANGGRAPH_JOBS_PER_WORKER:-10}" && if [ "$${LANGGRAPH_ALLOW_BLOCKING:-0}" = "1" ]; then args="$$args --allow-blocking"; fi && uv run langgraph dev $$args'
     volumes:
-      - ${DEER_FLOW_CONFIG_PATH}:/app/backend/config.yaml:ro
-      - ${DEER_FLOW_EXTENSIONS_CONFIG_PATH}:/app/backend/extensions_config.json:ro
-      - ${DEER_FLOW_HOME}:/app/backend/.deer-flow
+      - ${KIWI_FLOW_CONFIG_PATH}:/app/backend/config.yaml:ro
+      - ${KIWI_FLOW_EXTENSIONS_CONFIG_PATH}:/app/backend/extensions_config.json:ro
+      - ${KIWI_FLOW_HOME}:/app/backend/.kiwi-flow
       - ../skills:/app/skills:ro
       - ../backend/.langgraph_api:/app/backend/.langgraph_api
       # DooD: same as gateway
-      - ${DEER_FLOW_DOCKER_SOCKET}:/var/run/docker.sock
+      - ${KIWI_FLOW_DOCKER_SOCKET}:/var/run/docker.sock
       # CLI auth directories for auto-auth (Claude Code + Codex CLI)
       - type: bind
         source: ${HOME:?HOME must be set}/.claude
@@ -151,12 +151,12 @@ services:
           create_host_path: true
     environment:
       - CI=true
-      - DEER_FLOW_HOME=/app/backend/.deer-flow
-      - DEER_FLOW_CONFIG_PATH=/app/backend/config.yaml
-      - DEER_FLOW_EXTENSIONS_CONFIG_PATH=/app/backend/extensions_config.json
-      - DEER_FLOW_HOST_BASE_DIR=${DEER_FLOW_HOME}
-      - DEER_FLOW_HOST_SKILLS_PATH=${DEER_FLOW_REPO_ROOT}/skills
-      - DEER_FLOW_SANDBOX_HOST=host.docker.internal
+      - KIWI_FLOW_HOME=/app/backend/.kiwi-flow
+      - KIWI_FLOW_CONFIG_PATH=/app/backend/config.yaml
+      - KIWI_FLOW_EXTENSIONS_CONFIG_PATH=/app/backend/extensions_config.json
+      - KIWI_FLOW_HOST_BASE_DIR=${KIWI_FLOW_HOME}
+      - KIWI_FLOW_HOST_SKILLS_PATH=${KIWI_FLOW_REPO_ROOT}/skills
+      - KIWI_FLOW_SANDBOX_HOST=host.docker.internal
       # LangSmith tracing: set LANGSMITH_TRACING=true and LANGSMITH_API_KEY in .env to enable.
     env_file:
       - ../.env
@@ -180,8 +180,8 @@ services:
     environment:
       - K8S_NAMESPACE=deer-flow
       - SANDBOX_IMAGE=enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
-      - SKILLS_HOST_PATH=${DEER_FLOW_REPO_ROOT}/skills
-      - THREADS_HOST_PATH=${DEER_FLOW_HOME}/threads
+      - SKILLS_HOST_PATH=${KIWI_FLOW_REPO_ROOT}/skills
+      - THREADS_HOST_PATH=${KIWI_FLOW_HOME}/threads
       - KUBECONFIG_PATH=/root/.kube/config
       - NODE_HOST=host.docker.internal
       - K8S_API_SERVER=https://host.docker.internal:26443

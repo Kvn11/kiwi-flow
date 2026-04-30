@@ -842,7 +842,7 @@ class DeerFlowClient:
         """
         config_path = ExtensionsConfig.resolve_config_path()
         if config_path is None:
-            raise FileNotFoundError("Cannot locate extensions_config.json. Set DEER_FLOW_EXTENSIONS_CONFIG_PATH or ensure it exists in the project root.")
+            raise FileNotFoundError("Cannot locate extensions_config.json. Set KIWI_FLOW_EXTENSIONS_CONFIG_PATH or ensure it exists in the project root.")
 
         current_config = get_extensions_config()
 
@@ -907,7 +907,7 @@ class DeerFlowClient:
 
         config_path = ExtensionsConfig.resolve_config_path()
         if config_path is None:
-            raise FileNotFoundError("Cannot locate extensions_config.json. Set DEER_FLOW_EXTENSIONS_CONFIG_PATH or ensure it exists in the project root.")
+            raise FileNotFoundError("Cannot locate extensions_config.json. Set KIWI_FLOW_EXTENSIONS_CONFIG_PATH or ensure it exists in the project root.")
 
         extensions_config = get_extensions_config()
         extensions_config.skills[name] = SkillStateConfig(enabled=enabled)

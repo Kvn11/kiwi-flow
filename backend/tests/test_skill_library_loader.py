@@ -19,8 +19,8 @@ def _write_skill(skill_dir: Path, name: str, description: str) -> None:
 @pytest.fixture(autouse=True)
 def _isolated_extensions_config(monkeypatch):
     """Each test starts with no extensions config (singleton + env var cleared) so
-    default-enabled wins unless the test points DEER_FLOW_EXTENSIONS_CONFIG_PATH at a fixture file."""
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
+    default-enabled wins unless the test points KIWI_FLOW_EXTENSIONS_CONFIG_PATH at a fixture file."""
+    monkeypatch.delenv("KIWI_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
     set_extensions_config(ExtensionsConfig())
     yield
     reset_extensions_config()
@@ -107,8 +107,8 @@ def test_enabled_state_from_extensions_config(tmp_path: Path, monkeypatch):
         encoding="utf-8",
     )
     # Point the loader at our tmp extensions config (the loader calls from_file()
-    # which respects DEER_FLOW_EXTENSIONS_CONFIG_PATH).
-    monkeypatch.setenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", str(extensions))
+    # which respects KIWI_FLOW_EXTENSIONS_CONFIG_PATH).
+    monkeypatch.setenv("KIWI_FLOW_EXTENSIONS_CONFIG_PATH", str(extensions))
 
     skills = load_skill_library(library_path=library, use_config=False, enabled_only=False)
     by_name = {s.name: s for s in skills}
@@ -128,7 +128,7 @@ def test_enabled_only_filter_drops_disabled(tmp_path: Path, monkeypatch):
         _json.dumps({"mcpServers": {}, "skills": {}, "librarySkills": {"alpha": {"enabled": False}}}),
         encoding="utf-8",
     )
-    monkeypatch.setenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", str(extensions))
+    monkeypatch.setenv("KIWI_FLOW_EXTENSIONS_CONFIG_PATH", str(extensions))
 
     skills = load_skill_library(library_path=library, use_config=False, enabled_only=True)
     assert {s.name for s in skills} == {"beta"}

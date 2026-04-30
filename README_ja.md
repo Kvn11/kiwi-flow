@@ -191,7 +191,7 @@ make down   # コンテナを停止して削除
 
 サービスをローカルで実行する場合：
 
-前提条件：上記の「設定」手順を先に完了してください（`make config`とモデルAPIキー）。`make dev`には有効な設定ファイルが必要です（デフォルトはプロジェクトルートの`config.yaml`。`DEER_FLOW_CONFIG_PATH`で上書き可能）。
+前提条件：上記の「設定」手順を先に完了してください（`make config`とモデルAPIキー）。`make dev`には有効な設定ファイルが必要です（デフォルトはプロジェクトルートの`config.yaml`。`KIWI_FLOW_CONFIG_PATH`で上書き可能）。
 
 1. **前提条件の確認**：
    ```bash
@@ -423,9 +423,9 @@ DeerFlowが実行中であることを確認し（デフォルトは`http://loca
 **環境変数**（オプション、カスタムエンドポイント用）：
 
 ```bash
-DEERFLOW_URL=http://localhost:2026            # 統合プロキシベースURL
-DEERFLOW_GATEWAY_URL=http://localhost:2026    # Gateway API
-DEERFLOW_LANGGRAPH_URL=http://localhost:2026/api/langgraph  # LangGraph API
+KIWI_URL=http://localhost:2026            # 統合プロキシベースURL
+KIWI_GATEWAY_URL=http://localhost:2026    # Gateway API
+KIWI_LANGGRAPH_URL=http://localhost:2026/api/langgraph  # LangGraph API
 ```
 
 完全なAPIリファレンスは[`skills/public/claude-to-kiwi/SKILL.md`](skills/public/claude-to-kiwi/SKILL.md)をご覧ください。

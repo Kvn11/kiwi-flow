@@ -160,7 +160,7 @@ from kiwi.config import get_app_config
 
 Lead-agent middlewares are assembled in strict append order across `packages/harness/kiwi/agents/middlewares/tool_error_handling_middleware.py` (`build_lead_runtime_middlewares`) and `packages/harness/kiwi/agents/lead_agent/agent.py` (`_build_middlewares`):
 
-1. **ThreadDataMiddleware** - Creates per-thread directories (`backend/.deer-flow/threads/{thread_id}/user-data/{workspace,uploads,outputs}`); Web UI thread deletion now follows LangGraph thread removal with Gateway cleanup of the local `.deer-flow/threads/{thread_id}` directory
+1. **ThreadDataMiddleware** - Creates per-thread directories (`backend/.kiwi-flow/threads/{thread_id}/user-data/{workspace,uploads,outputs}`); Web UI thread deletion now follows LangGraph thread removal with Gateway cleanup of the local `.kiwi-flow/threads/{thread_id}` directory
 2. **UploadsMiddleware** - Tracks and injects newly uploaded files into conversation
 3. **SandboxMiddleware** - Acquires sandbox, stores `sandbox_id` in state
 4. **DanglingToolCallMiddleware** - Injects placeholder ToolMessages for AIMessage tool_calls that lack responses (e.g., due to user interruption), including raw provider tool-call payloads preserved only in `additional_kwargs["tool_calls"]`
@@ -191,7 +191,7 @@ Setup: Copy `config.example.yaml` to `config.yaml` in the **project root** direc
 
 Configuration priority:
 1. Explicit `config_path` argument
-2. `DEER_FLOW_CONFIG_PATH` environment variable
+2. `KIWI_FLOW_CONFIG_PATH` environment variable
 3. `config.yaml` in current directory (backend/)
 4. `config.yaml` in parent directory (project root - **recommended location**)
 
@@ -204,7 +204,7 @@ MCP servers and skills are configured together in `extensions_config.json` in pr
 
 Configuration priority:
 1. Explicit `config_path` argument
-2. `DEER_FLOW_EXTENSIONS_CONFIG_PATH` environment variable
+2. `KIWI_FLOW_EXTENSIONS_CONFIG_PATH` environment variable
 3. `extensions_config.json` in current directory (backend/)
 4. `extensions_config.json` in parent directory (project root - **recommended location**)
 
@@ -237,7 +237,7 @@ Proxied through nginx: `/api/langgraph/*` → LangGraph, all other `/api/*` → 
 
 **Virtual Path System**:
 - Agent sees: `/mnt/user-data/{workspace,uploads,outputs}`, `/mnt/skills`
-- Physical: `backend/.deer-flow/threads/{thread_id}/user-data/...`, `deer-flow/skills/`
+- Physical: `backend/.kiwi-flow/threads/{thread_id}/user-data/...`, `deer-flow/skills/`
 - Translation: `replace_virtual_path()` / `replace_virtual_paths_in_command()`
 - Detection: `is_local_sandbox()` checks `sandbox_id == "local"`
 
@@ -358,7 +358,7 @@ Bridges external messaging platforms (Feishu, Slack, Telegram) to the DeerFlow a
 **Configuration** (`config.yaml` -> `channels`):
 - `langgraph_url` - LangGraph Server URL (default: `http://localhost:2024`)
 - `gateway_url` - Gateway API URL for auxiliary commands (default: `http://localhost:8001`)
-- In Docker Compose, IM channels run inside the `gateway` container, so `localhost` points back to that container. Use `http://langgraph:2024` / `http://gateway:8001`, or set `DEER_FLOW_CHANNELS_LANGGRAPH_URL` / `DEER_FLOW_CHANNELS_GATEWAY_URL`.
+- In Docker Compose, IM channels run inside the `gateway` container, so `localhost` points back to that container. Use `http://langgraph:2024` / `http://gateway:8001`, or set `KIWI_FLOW_CHANNELS_LANGGRAPH_URL` / `KIWI_FLOW_CHANNELS_GATEWAY_URL`.
 - Per-channel configs: `feishu` (app_id, app_secret), `slack` (bot_token, app_token), `telegram` (bot_token)
 
 ### Memory System (`packages/harness/kiwi/agents/memory/`)
@@ -368,7 +368,7 @@ Bridges external messaging platforms (Feishu, Slack, Telegram) to the DeerFlow a
 - `queue.py` - Debounced update queue (per-thread deduplication, configurable wait time)
 - `prompt.py` - Prompt templates for memory updates
 
-**Data Structure** (stored in `backend/.deer-flow/memory.json`):
+**Data Structure** (stored in `backend/.kiwi-flow/memory.json`):
 - **User Context**: `workContext`, `personalContext`, `topOfMind` (1-3 sentence summaries)
 - **History**: `recentMonths`, `earlierContext`, `longTermBackground`
 - **Facts**: Discrete facts with `id`, `content`, `category` (preference/knowledge/context/behavior/goal), `confidence` (0-1), `createdAt`, `source`
@@ -444,7 +444,7 @@ Both can be modified at runtime via Gateway API endpoints or `DeerFlowClient` me
 | Uploads | `upload_files(thread_id, files)`, `list_uploads(thread_id)`, `delete_upload(thread_id, filename)` | `{"success": true, "files": [...]}`, `{"files": [...], "count": N}` |
 | Artifacts | `get_artifact(thread_id, path)` → `(bytes, mime_type)` | tuple |
 
-**Key difference from Gateway**: Upload accepts local `Path` objects instead of HTTP `UploadFile`, rejects directory paths before copying, and reuses a single worker when document conversion must run inside an active event loop. Artifact returns `(bytes, mime_type)` instead of HTTP Response. The new Gateway-only thread cleanup route deletes `.deer-flow/threads/{thread_id}` after LangGraph thread deletion; there is no matching `DeerFlowClient` method yet. `update_mcp_config()` and `update_skill()` automatically invalidate the cached agent.
+**Key difference from Gateway**: Upload accepts local `Path` objects instead of HTTP `UploadFile`, rejects directory paths before copying, and reuses a single worker when document conversion must run inside an active event loop. Artifact returns `(bytes, mime_type)` instead of HTTP Response. The new Gateway-only thread cleanup route deletes `.kiwi-flow/threads/{thread_id}` after LangGraph thread deletion; there is no matching `DeerFlowClient` method yet. `update_mcp_config()` and `update_skill()` automatically invalidate the cached agent.
 
 **Tests**: `tests/test_client.py` (77 unit tests including `TestGatewayConformance`), `tests/test_client_live.py` (live integration tests, requires config.yaml)
 

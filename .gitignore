@@ -35,7 +35,7 @@ extensions_config.json
 # Coverage report
 coverage.xml
 coverage/
-.deer-flow/
+.kiwi-flow/
 .claude/
 skills/custom/*
 logs/

@@ -567,7 +567,7 @@ def test_resolve_acp_workspace_path_blocks_traversal(tmp_path: Path) -> None:
 
 def test_replace_virtual_paths_in_command_replaces_acp_workspace() -> None:
     """ACP workspace virtual paths in commands should be resolved to host paths."""
-    acp_host = "/home/user/.deer-flow/acp-workspace"
+    acp_host = "/home/user/.kiwi-flow/acp-workspace"
     with patch("kiwi.sandbox.tools._get_acp_workspace_host_path", return_value=acp_host):
         cmd = "cp /mnt/acp-workspace/hello.py /mnt/user-data/outputs/hello.py"
         result = replace_virtual_paths_in_command(cmd, _THREAD_DATA)
@@ -578,7 +578,7 @@ def test_replace_virtual_paths_in_command_replaces_acp_workspace() -> None:
 
 def test_mask_local_paths_in_output_hides_acp_workspace_host_paths() -> None:
     """ACP workspace host paths in bash output should be masked to virtual paths."""
-    acp_host = "/home/user/.deer-flow/acp-workspace"
+    acp_host = "/home/user/.kiwi-flow/acp-workspace"
     with patch("kiwi.sandbox.tools._get_acp_workspace_host_path", return_value=acp_host):
         output = f"Copied: {acp_host}/hello.py"
         masked = mask_local_paths_in_output(output, _THREAD_DATA)
