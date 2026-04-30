@@ -198,7 +198,7 @@ class DiscordChannel(Channel):
 
     async def _create_thread(self, message):
         try:
-            thread_name = f"deerflow-{message.author.display_name}-{message.id}"[:100]
+            thread_name = f"kiwi-{message.author.display_name}-{message.id}"[:100]
             return await message.create_thread(name=thread_name)
         except Exception:
             logger.exception("[Discord] failed to create thread for message=%s (threads may be disabled or missing permissions)", message.id)

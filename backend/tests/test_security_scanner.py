@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from deerflow.skills.security_scanner import scan_skill_content
+from kiwi.skills.security_scanner import scan_skill_content
 
 
 @pytest.mark.anyio
@@ -17,8 +17,8 @@ async def test_scan_skill_content_passes_run_name_to_model(monkeypatch):
             return fake_response
 
     model = FakeModel()
-    monkeypatch.setattr("deerflow.skills.security_scanner.get_app_config", lambda: config)
-    monkeypatch.setattr("deerflow.skills.security_scanner.create_chat_model", lambda **kwargs: model)
+    monkeypatch.setattr("kiwi.skills.security_scanner.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.skills.security_scanner.create_chat_model", lambda **kwargs: model)
 
     result = await scan_skill_content("---\nname: demo-skill\ndescription: demo\n---\n", executable=False)
 
@@ -29,8 +29,8 @@ async def test_scan_skill_content_passes_run_name_to_model(monkeypatch):
 @pytest.mark.anyio
 async def test_scan_skill_content_blocks_when_model_unavailable(monkeypatch):
     config = SimpleNamespace(skill_evolution=SimpleNamespace(moderation_model_name=None))
-    monkeypatch.setattr("deerflow.skills.security_scanner.get_app_config", lambda: config)
-    monkeypatch.setattr("deerflow.skills.security_scanner.create_chat_model", lambda **kwargs: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr("kiwi.skills.security_scanner.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.skills.security_scanner.create_chat_model", lambda **kwargs: (_ for _ in ()).throw(RuntimeError("boom")))
 
     result = await scan_skill_content("---\nname: demo-skill\ndescription: demo\n---\n", executable=False)
 

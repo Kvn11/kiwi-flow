@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 from langchain_core.messages import AIMessage, HumanMessage, RemoveMessage, ToolMessage
 
-from deerflow.agents.middlewares.summarization_middleware import DeerFlowSummarizationMiddleware
+from kiwi.agents.middlewares.summarization_middleware import DeerFlowSummarizationMiddleware
 
 
 def _runtime() -> SimpleNamespace:

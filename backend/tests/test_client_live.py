@@ -12,9 +12,9 @@ from pathlib import Path
 
 import pytest
 
-from deerflow.client import DeerFlowClient, StreamEvent
-from deerflow.sandbox.security import is_host_bash_allowed
-from deerflow.uploads.manager import PathTraversalError
+from kiwi.client import DeerFlowClient, StreamEvent
+from kiwi.sandbox.security import is_host_bash_allowed
+from kiwi.uploads.manager import PathTraversalError
 
 # Skip entire module in CI or when no config.yaml exists
 _skip_reason = None

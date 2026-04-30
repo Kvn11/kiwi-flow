@@ -23,7 +23,7 @@ from app.gateway.routers import (
     threads,
     uploads,
 )
-from deerflow.config.app_config import get_app_config
+from kiwi.config.app_config import get_app_config
 
 # Configure logging
 logging.basicConfig(

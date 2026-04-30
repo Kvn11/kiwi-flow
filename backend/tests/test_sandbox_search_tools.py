@@ -1,11 +1,11 @@
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from deerflow.community.aio_sandbox.aio_sandbox import AioSandbox
-from deerflow.config.sandbox_config import VolumeMountConfig
-from deerflow.sandbox.local.local_sandbox import LocalSandbox, PathMapping
-from deerflow.sandbox.search import GrepMatch, find_glob_matches, find_grep_matches
-from deerflow.sandbox.tools import glob_tool, grep_tool, ls_tool, read_file_tool
+from kiwi.community.aio_sandbox.aio_sandbox import AioSandbox
+from kiwi.config.sandbox_config import VolumeMountConfig
+from kiwi.sandbox.local.local_sandbox import LocalSandbox, PathMapping
+from kiwi.sandbox.search import GrepMatch, find_glob_matches, find_grep_matches
+from kiwi.sandbox.tools import glob_tool, grep_tool, ls_tool, read_file_tool
 
 
 def _make_runtime(tmp_path):
@@ -37,7 +37,7 @@ def test_glob_tool_returns_virtual_paths_and_ignores_common_dirs(tmp_path, monke
     (workspace / "node_modules").mkdir()
     (workspace / "node_modules" / "skip.py").write_text("ignored\n", encoding="utf-8")
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
+    monkeypatch.setattr("kiwi.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
 
     result = glob_tool.func(
         runtime=runtime,
@@ -58,11 +58,11 @@ def test_glob_tool_supports_skills_virtual_paths(tmp_path, monkeypatch) -> None:
     (skills_dir / "public" / "demo").mkdir(parents=True)
     (skills_dir / "public" / "demo" / "SKILL.md").write_text("# Demo\n", encoding="utf-8")
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
+    monkeypatch.setattr("kiwi.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
 
     with (
-        patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
-        patch("deerflow.sandbox.tools._get_skills_host_path", return_value=str(skills_dir)),
+        patch("kiwi.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
+        patch("kiwi.sandbox.tools._get_skills_host_path", return_value=str(skills_dir)),
     ):
         result = glob_tool.func(
             runtime=runtime,
@@ -82,7 +82,7 @@ def test_grep_tool_filters_by_glob_and_skips_binary_files(tmp_path, monkeypatch)
     (workspace / "notes.txt").write_text("TODO in txt should be filtered\n", encoding="utf-8")
     (workspace / "image.bin").write_bytes(b"\0binary TODO")
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
+    monkeypatch.setattr("kiwi.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
 
     result = grep_tool.func(
         runtime=runtime,
@@ -103,9 +103,9 @@ def test_grep_tool_truncates_results(tmp_path, monkeypatch) -> None:
     workspace = tmp_path / "workspace"
     (workspace / "main.py").write_text("TODO one\nTODO two\nTODO three\n", encoding="utf-8")
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
+    monkeypatch.setattr("kiwi.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
     # Prevent config.yaml tool config from overriding the caller-supplied max_results=2.
-    monkeypatch.setattr("deerflow.sandbox.tools.get_app_config", lambda: SimpleNamespace(get_tool_config=lambda name: None))
+    monkeypatch.setattr("kiwi.sandbox.tools.get_app_config", lambda: SimpleNamespace(get_tool_config=lambda name: None))
 
     result = grep_tool.func(
         runtime=runtime,
@@ -130,7 +130,7 @@ def test_glob_tool_include_dirs_filters_nested_ignored_paths(tmp_path, monkeypat
     (workspace / "node_modules").mkdir()
     (workspace / "node_modules" / "lib").mkdir()
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
+    monkeypatch.setattr("kiwi.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
 
     result = glob_tool.func(
         runtime=runtime,
@@ -149,7 +149,7 @@ def test_grep_tool_literal_mode(tmp_path, monkeypatch) -> None:
     workspace = tmp_path / "workspace"
     (workspace / "file.py").write_text("price = (a+b)\nresult = a+b\n", encoding="utf-8")
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
+    monkeypatch.setattr("kiwi.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
 
     # literal=True should treat (a+b) as a plain string, not a regex group
     result = grep_tool.func(
@@ -169,7 +169,7 @@ def test_grep_tool_case_sensitive(tmp_path, monkeypatch) -> None:
     workspace = tmp_path / "workspace"
     (workspace / "file.py").write_text("TODO: fix\ntodo: also fix\n", encoding="utf-8")
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
+    monkeypatch.setattr("kiwi.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
 
     result = grep_tool.func(
         runtime=runtime,
@@ -186,7 +186,7 @@ def test_grep_tool_case_sensitive(tmp_path, monkeypatch) -> None:
 def test_grep_tool_invalid_regex_returns_error(tmp_path, monkeypatch) -> None:
     runtime = _make_runtime(tmp_path)
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
+    monkeypatch.setattr("kiwi.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
 
     result = grep_tool.func(
         runtime=runtime,
@@ -199,7 +199,7 @@ def test_grep_tool_invalid_regex_returns_error(tmp_path, monkeypatch) -> None:
 
 
 def test_aio_sandbox_glob_include_dirs_filters_nested_ignored(monkeypatch) -> None:
-    with patch("deerflow.community.aio_sandbox.aio_sandbox.AioSandboxClient"):
+    with patch("kiwi.community.aio_sandbox.aio_sandbox.AioSandboxClient"):
         sandbox = AioSandbox(id="test-sandbox", base_url="http://localhost:8080")
     monkeypatch.setattr(
         sandbox._client.file,
@@ -225,7 +225,7 @@ def test_aio_sandbox_glob_include_dirs_filters_nested_ignored(monkeypatch) -> No
 
 
 def test_aio_sandbox_grep_invalid_regex_raises() -> None:
-    with patch("deerflow.community.aio_sandbox.aio_sandbox.AioSandboxClient"):
+    with patch("kiwi.community.aio_sandbox.aio_sandbox.AioSandboxClient"):
         sandbox = AioSandbox(id="test-sandbox", base_url="http://localhost:8080")
 
     import re
@@ -238,7 +238,7 @@ def test_aio_sandbox_grep_invalid_regex_raises() -> None:
 
 
 def test_aio_sandbox_glob_parses_json(monkeypatch) -> None:
-    with patch("deerflow.community.aio_sandbox.aio_sandbox.AioSandboxClient"):
+    with patch("kiwi.community.aio_sandbox.aio_sandbox.AioSandboxClient"):
         sandbox = AioSandbox(id="test-sandbox", base_url="http://localhost:8080")
     monkeypatch.setattr(
         sandbox._client.file,
@@ -253,7 +253,7 @@ def test_aio_sandbox_glob_parses_json(monkeypatch) -> None:
 
 
 def test_aio_sandbox_grep_parses_json(monkeypatch) -> None:
-    with patch("deerflow.community.aio_sandbox.aio_sandbox.AioSandboxClient"):
+    with patch("kiwi.community.aio_sandbox.aio_sandbox.AioSandboxClient"):
         sandbox = AioSandbox(id="test-sandbox", base_url="http://localhost:8080")
     monkeypatch.setattr(
         sandbox._client.file,
@@ -324,9 +324,9 @@ def test_glob_tool_honors_smaller_requested_max_results(tmp_path, monkeypatch) -
     (workspace / "b.py").write_text("print('b')\n", encoding="utf-8")
     (workspace / "c.py").write_text("print('c')\n", encoding="utf-8")
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
+    monkeypatch.setattr("kiwi.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
     monkeypatch.setattr(
-        "deerflow.sandbox.tools.get_app_config",
+        "kiwi.sandbox.tools.get_app_config",
         lambda: SimpleNamespace(get_tool_config=lambda name: SimpleNamespace(model_extra={"max_results": 50})),
     )
 
@@ -343,7 +343,7 @@ def test_glob_tool_honors_smaller_requested_max_results(tmp_path, monkeypatch) -
 
 
 def test_aio_sandbox_glob_include_dirs_enforces_root_boundary(monkeypatch) -> None:
-    with patch("deerflow.community.aio_sandbox.aio_sandbox.AioSandboxClient"):
+    with patch("kiwi.community.aio_sandbox.aio_sandbox.AioSandboxClient"):
         sandbox = AioSandbox(id="test-sandbox", base_url="http://localhost:8080")
     monkeypatch.setattr(
         sandbox._client.file,
@@ -365,7 +365,7 @@ def test_aio_sandbox_glob_include_dirs_enforces_root_boundary(monkeypatch) -> No
 
 
 def test_aio_sandbox_grep_skips_mismatched_line_number_payloads(monkeypatch) -> None:
-    with patch("deerflow.community.aio_sandbox.aio_sandbox.AioSandboxClient"):
+    with patch("kiwi.community.aio_sandbox.aio_sandbox.AioSandboxClient"):
         sandbox = AioSandbox(id="test-sandbox", base_url="http://localhost:8080")
     monkeypatch.setattr(
         sandbox._client.file,
@@ -406,7 +406,7 @@ def test_ls_tool_masks_user_data_host_paths(tmp_path, monkeypatch) -> None:
     (workspace / "report.txt").write_text("hello\n", encoding="utf-8")
     (workspace / "subdir").mkdir()
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
+    monkeypatch.setattr("kiwi.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
 
     result = ls_tool.func(
         runtime=runtime,
@@ -428,11 +428,11 @@ def test_ls_tool_masks_skills_host_paths(tmp_path, monkeypatch) -> None:
     (skills_dir / "public").mkdir(parents=True)
     (skills_dir / "public" / "SKILL.md").write_text("# Skill\n", encoding="utf-8")
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
+    monkeypatch.setattr("kiwi.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
 
     with (
-        patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
-        patch("deerflow.sandbox.tools._get_skills_host_path", return_value=str(skills_dir)),
+        patch("kiwi.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
+        patch("kiwi.sandbox.tools._get_skills_host_path", return_value=str(skills_dir)),
     ):
         result = ls_tool.func(
             runtime=runtime,
@@ -451,7 +451,7 @@ def test_ls_tool_returns_empty_for_empty_directory(tmp_path, monkeypatch) -> Non
     """ls_tool should return '(empty)' for an empty directory."""
     runtime = _make_runtime(tmp_path)
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
+    monkeypatch.setattr("kiwi.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
 
     result = ls_tool.func(
         runtime=runtime,
@@ -469,11 +469,11 @@ def test_ls_tool_supports_skill_library_virtual_paths(tmp_path, monkeypatch) -> 
     (library_dir / "specialized").mkdir(parents=True)
     (library_dir / "specialized" / "SKILL.md").write_text("# Specialized\n", encoding="utf-8")
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
+    monkeypatch.setattr("kiwi.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
 
     with (
-        patch("deerflow.sandbox.tools._get_library_container_path", return_value="/mnt/skill-library"),
-        patch("deerflow.sandbox.tools._get_library_host_path", return_value=str(library_dir)),
+        patch("kiwi.sandbox.tools._get_library_container_path", return_value="/mnt/skill-library"),
+        patch("kiwi.sandbox.tools._get_library_host_path", return_value=str(library_dir)),
     ):
         result = ls_tool.func(
             runtime=runtime,
@@ -494,11 +494,11 @@ def test_read_file_tool_supports_skill_library_virtual_paths(tmp_path, monkeypat
     skill_md = library_dir / "specialized" / "SKILL.md"
     skill_md.write_text("# Specialized\nworkflow body\n", encoding="utf-8")
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
+    monkeypatch.setattr("kiwi.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
 
     with (
-        patch("deerflow.sandbox.tools._get_library_container_path", return_value="/mnt/skill-library"),
-        patch("deerflow.sandbox.tools._get_library_host_path", return_value=str(library_dir)),
+        patch("kiwi.sandbox.tools._get_library_container_path", return_value="/mnt/skill-library"),
+        patch("kiwi.sandbox.tools._get_library_host_path", return_value=str(library_dir)),
     ):
         result = read_file_tool.func(
             runtime=runtime,
@@ -534,9 +534,9 @@ def test_glob_tool_supports_custom_mount_paths(tmp_path, monkeypatch) -> None:
     (mount_dir / "nested" / "data.json").write_text("{}\n", encoding="utf-8")
 
     runtime, sandbox = _make_custom_mount_runtime(tmp_path, mount_dir)
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
+    monkeypatch.setattr("kiwi.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
 
-    with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=_custom_mount_config(mount_dir)):
+    with patch("kiwi.sandbox.tools._get_custom_mounts", return_value=_custom_mount_config(mount_dir)):
         result = glob_tool.func(
             runtime=runtime,
             description="find json under custom mount",
@@ -556,9 +556,9 @@ def test_grep_tool_supports_custom_mount_paths(tmp_path, monkeypatch) -> None:
     (mount_dir / "main.py").write_text("MARKER = 'found-it'\n", encoding="utf-8")
 
     runtime, sandbox = _make_custom_mount_runtime(tmp_path, mount_dir)
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
+    monkeypatch.setattr("kiwi.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
 
-    with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=_custom_mount_config(mount_dir)):
+    with patch("kiwi.sandbox.tools._get_custom_mounts", return_value=_custom_mount_config(mount_dir)):
         result = grep_tool.func(
             runtime=runtime,
             description="search for MARKER",

@@ -3,7 +3,7 @@ defaults to repo-relative skill-library/)."""
 
 from pathlib import Path
 
-from deerflow.config.skill_library_config import SkillLibraryConfig
+from kiwi.config.skill_library_config import SkillLibraryConfig
 
 
 def test_defaults():

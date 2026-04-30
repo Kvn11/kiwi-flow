@@ -11,14 +11,14 @@ Covers:
 
 import pytest
 
-from deerflow.config.subagents_config import (
+from kiwi.config.subagents_config import (
     CustomSubagentConfig,
     SubagentOverrideConfig,
     SubagentsAppConfig,
     get_subagents_app_config,
     load_subagents_config_from_dict,
 )
-from deerflow.subagents.config import SubagentConfig
+from kiwi.subagents.config import SubagentConfig
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -318,7 +318,7 @@ class TestRegistryCustomAgentLookup:
         _reset_subagents_config()
 
     def test_custom_agent_found(self):
-        from deerflow.subagents.registry import get_subagent_config
+        from kiwi.subagents.registry import get_subagent_config
 
         load_subagents_config_from_dict(
             {
@@ -344,15 +344,15 @@ class TestRegistryCustomAgentLookup:
         assert config.model == "inherit"
 
     def test_custom_agent_not_found(self):
-        from deerflow.subagents.registry import get_subagent_config
+        from kiwi.subagents.registry import get_subagent_config
 
         _reset_subagents_config()
         assert get_subagent_config("nonexistent") is None
 
     def test_builtin_takes_priority_over_custom(self):
         """If a custom agent has the same name as a builtin, builtin wins."""
-        from deerflow.subagents.builtins import BUILTIN_SUBAGENTS
-        from deerflow.subagents.registry import get_subagent_config
+        from kiwi.subagents.builtins import BUILTIN_SUBAGENTS
+        from kiwi.subagents.registry import get_subagent_config
 
         load_subagents_config_from_dict(
             {
@@ -370,7 +370,7 @@ class TestRegistryCustomAgentLookup:
 
     def test_custom_agent_with_override(self):
         """Per-agent overrides also apply to custom agents."""
-        from deerflow.subagents.registry import get_subagent_config
+        from kiwi.subagents.registry import get_subagent_config
 
         load_subagents_config_from_dict(
             {
@@ -402,7 +402,7 @@ class TestRegistrySkillsOverride:
         _reset_subagents_config()
 
     def test_skills_override_applied_to_builtin(self):
-        from deerflow.subagents.registry import get_subagent_config
+        from kiwi.subagents.registry import get_subagent_config
 
         load_subagents_config_from_dict(
             {
@@ -415,7 +415,7 @@ class TestRegistrySkillsOverride:
         assert config.skills == ["web-search", "data-analysis"]
 
     def test_empty_skills_override(self):
-        from deerflow.subagents.registry import get_subagent_config
+        from kiwi.subagents.registry import get_subagent_config
 
         load_subagents_config_from_dict(
             {
@@ -428,15 +428,15 @@ class TestRegistrySkillsOverride:
         assert config.skills == []
 
     def test_no_skills_override_keeps_default(self):
-        from deerflow.subagents.registry import get_subagent_config
+        from kiwi.subagents.registry import get_subagent_config
 
         _reset_subagents_config()
         config = get_subagent_config("general-purpose")
         assert config.skills is None  # Default: inherit all
 
     def test_skills_override_does_not_mutate_builtin(self):
-        from deerflow.subagents.builtins import BUILTIN_SUBAGENTS
-        from deerflow.subagents.registry import get_subagent_config
+        from kiwi.subagents.builtins import BUILTIN_SUBAGENTS
+        from kiwi.subagents.registry import get_subagent_config
 
         load_subagents_config_from_dict(
             {
@@ -459,7 +459,7 @@ class TestRegistryAvailableNames:
         _reset_subagents_config()
 
     def test_includes_builtin_names(self):
-        from deerflow.subagents.registry import get_subagent_names
+        from kiwi.subagents.registry import get_subagent_names
 
         _reset_subagents_config()
         names = get_subagent_names()
@@ -467,7 +467,7 @@ class TestRegistryAvailableNames:
         assert "bash" in names
 
     def test_includes_custom_names(self):
-        from deerflow.subagents.registry import get_subagent_names
+        from kiwi.subagents.registry import get_subagent_names
 
         load_subagents_config_from_dict(
             {
@@ -490,7 +490,7 @@ class TestRegistryAvailableNames:
         assert "researcher" in names
 
     def test_no_duplicates_when_custom_name_matches_builtin(self):
-        from deerflow.subagents.registry import get_subagent_names
+        from kiwi.subagents.registry import get_subagent_names
 
         load_subagents_config_from_dict(
             {
@@ -516,7 +516,7 @@ class TestRegistryListSubagentsWithCustom:
         _reset_subagents_config()
 
     def test_list_includes_custom_agents(self):
-        from deerflow.subagents.registry import list_subagents
+        from kiwi.subagents.registry import list_subagents
 
         load_subagents_config_from_dict(
             {
@@ -536,7 +536,7 @@ class TestRegistryListSubagentsWithCustom:
         assert "analysis" in names
 
     def test_list_custom_agent_has_correct_skills(self):
-        from deerflow.subagents.registry import list_subagents
+        from kiwi.subagents.registry import list_subagents
 
         load_subagents_config_from_dict(
             {

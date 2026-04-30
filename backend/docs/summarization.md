@@ -297,8 +297,8 @@ The middleware intelligently preserves message context:
 
 ### Code Structure
 
-- **Configuration**: `packages/harness/deerflow/config/summarization_config.py`
-- **Integration**: `packages/harness/deerflow/agents/lead_agent/agent.py`
+- **Configuration**: `packages/harness/kiwi/config/summarization_config.py`
+- **Integration**: `packages/harness/kiwi/agents/lead_agent/agent.py`
 - **Middleware**: Uses `langchain.agents.middleware.SummarizationMiddleware`
 
 ### Middleware Order

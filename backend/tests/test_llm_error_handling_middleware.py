@@ -8,7 +8,7 @@ import pytest
 from langchain_core.messages import AIMessage
 from langgraph.errors import GraphBubbleUp
 
-from deerflow.agents.middlewares.llm_error_handling_middleware import (
+from kiwi.agents.middlewares.llm_error_handling_middleware import (
     LLMErrorHandlingMiddleware,
 )
 

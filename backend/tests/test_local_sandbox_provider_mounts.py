@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 import pytest
 
-from deerflow.sandbox.local.local_sandbox import LocalSandbox, PathMapping
-from deerflow.sandbox.local.local_sandbox_provider import LocalSandboxProvider
+from kiwi.sandbox.local.local_sandbox import LocalSandbox, PathMapping
+from kiwi.sandbox.local.local_sandbox_provider import LocalSandboxProvider
 
 
 class TestPathMapping:
@@ -250,8 +250,8 @@ class TestMultipleMounts:
                 captured["command"] = args[0]
             return original_run(*args, **kwargs)
 
-        monkeypatch.setattr("deerflow.sandbox.local.local_sandbox.subprocess.run", mock_run)
-        monkeypatch.setattr("deerflow.sandbox.local.local_sandbox.LocalSandbox._get_shell", lambda self: "/bin/sh")
+        monkeypatch.setattr("kiwi.sandbox.local.local_sandbox.subprocess.run", mock_run)
+        monkeypatch.setattr("kiwi.sandbox.local.local_sandbox.LocalSandbox._get_shell", lambda self: "/bin/sh")
 
         sandbox.execute_command("cat /mnt/data/test.txt")
         # Verify the command received the resolved local path
@@ -299,10 +299,10 @@ class TestLocalSandboxProviderMounts:
         custom_dir = tmp_path / "custom"
         custom_dir.mkdir()
 
-        from deerflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
+        from kiwi.config.sandbox_config import SandboxConfig, VolumeMountConfig
 
         sandbox_config = SandboxConfig(
-            use="deerflow.sandbox.local:LocalSandboxProvider",
+            use="kiwi.sandbox.local:LocalSandboxProvider",
             mounts=[
                 VolumeMountConfig(host_path=str(custom_dir), container_path="/custom-skills/nested", read_only=False),
             ],
@@ -312,7 +312,7 @@ class TestLocalSandboxProviderMounts:
             sandbox=sandbox_config,
         )
 
-        with patch("deerflow.config.get_app_config", return_value=config):
+        with patch("kiwi.config.get_app_config", return_value=config):
             provider = LocalSandboxProvider()
 
         assert [m.container_path for m in provider._path_mappings] == ["/custom-skills"]
@@ -321,10 +321,10 @@ class TestLocalSandboxProviderMounts:
         skills_dir = tmp_path / "skills"
         skills_dir.mkdir()
 
-        from deerflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
+        from kiwi.config.sandbox_config import SandboxConfig, VolumeMountConfig
 
         sandbox_config = SandboxConfig(
-            use="deerflow.sandbox.local:LocalSandboxProvider",
+            use="kiwi.sandbox.local:LocalSandboxProvider",
             mounts=[
                 VolumeMountConfig(host_path="relative/path", container_path="/mnt/data", read_only=False),
             ],
@@ -334,7 +334,7 @@ class TestLocalSandboxProviderMounts:
             sandbox=sandbox_config,
         )
 
-        with patch("deerflow.config.get_app_config", return_value=config):
+        with patch("kiwi.config.get_app_config", return_value=config):
             provider = LocalSandboxProvider()
 
         assert [m.container_path for m in provider._path_mappings] == ["/mnt/skills"]
@@ -345,10 +345,10 @@ class TestLocalSandboxProviderMounts:
         custom_dir = tmp_path / "custom"
         custom_dir.mkdir()
 
-        from deerflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
+        from kiwi.config.sandbox_config import SandboxConfig, VolumeMountConfig
 
         sandbox_config = SandboxConfig(
-            use="deerflow.sandbox.local:LocalSandboxProvider",
+            use="kiwi.sandbox.local:LocalSandboxProvider",
             mounts=[
                 VolumeMountConfig(host_path=str(custom_dir), container_path="mnt/data", read_only=False),
             ],
@@ -358,7 +358,7 @@ class TestLocalSandboxProviderMounts:
             sandbox=sandbox_config,
         )
 
-        with patch("deerflow.config.get_app_config", return_value=config):
+        with patch("kiwi.config.get_app_config", return_value=config):
             provider = LocalSandboxProvider()
 
         assert [m.container_path for m in provider._path_mappings] == ["/mnt/skills"]
@@ -461,10 +461,10 @@ class TestLocalSandboxProviderMounts:
         custom_dir = tmp_path / "custom"
         custom_dir.mkdir()
 
-        from deerflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
+        from kiwi.config.sandbox_config import SandboxConfig, VolumeMountConfig
 
         sandbox_config = SandboxConfig(
-            use="deerflow.sandbox.local:LocalSandboxProvider",
+            use="kiwi.sandbox.local:LocalSandboxProvider",
             mounts=[
                 VolumeMountConfig(host_path=str(custom_dir), container_path="/mnt/data/", read_only=False),
             ],
@@ -474,7 +474,7 @@ class TestLocalSandboxProviderMounts:
             sandbox=sandbox_config,
         )
 
-        with patch("deerflow.config.get_app_config", return_value=config):
+        with patch("kiwi.config.get_app_config", return_value=config):
             provider = LocalSandboxProvider()
 
         assert [m.container_path for m in provider._path_mappings] == ["/mnt/skills", "/mnt/data"]

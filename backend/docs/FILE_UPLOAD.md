@@ -219,7 +219,7 @@ backend/.deer-flow/threads/
    - 处理文件上传、列表、删除请求
    - 使用 markitdown 转换文档
 
-2. **Uploads Middleware** (`packages/harness/deerflow/agents/middlewares/uploads_middleware.py`)
+2. **Uploads Middleware** (`packages/harness/kiwi/agents/middlewares/uploads_middleware.py`)
    - 在每次 Agent 请求前注入文件列表
    - 自动生成格式化的文件列表消息
 

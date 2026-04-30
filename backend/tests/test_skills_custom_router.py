@@ -7,8 +7,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.gateway.routers import skills as skills_router
-from deerflow.skills.manager import get_skill_history_file
-from deerflow.skills.types import Skill
+from kiwi.skills.manager import get_skill_history_file
+from kiwi.skills.types import Skill
 
 
 def _skill_content(name: str, description: str = "Demo skill") -> str:
@@ -16,7 +16,7 @@ def _skill_content(name: str, description: str = "Demo skill") -> str:
 
 
 async def _async_scan(decision: str, reason: str):
-    from deerflow.skills.security_scanner import ScanResult
+    from kiwi.skills.security_scanner import ScanResult
 
     return ScanResult(decision=decision, reason=reason)
 
@@ -44,8 +44,8 @@ def test_custom_skills_router_lifecycle(monkeypatch, tmp_path):
         skills=SimpleNamespace(get_skills_path=lambda: skills_root, container_path="/mnt/skills"),
         skill_evolution=SimpleNamespace(enabled=True, moderation_model_name=None),
     )
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
-    monkeypatch.setattr("deerflow.skills.manager.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.config.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.skills.manager.get_app_config", lambda: config)
     monkeypatch.setattr("app.gateway.routers.skills.scan_skill_content", lambda *args, **kwargs: _async_scan("allow", "ok"))
     refresh_calls = []
 
@@ -94,8 +94,8 @@ def test_custom_skill_rollback_blocked_by_scanner(monkeypatch, tmp_path):
         skills=SimpleNamespace(get_skills_path=lambda: skills_root, container_path="/mnt/skills"),
         skill_evolution=SimpleNamespace(enabled=True, moderation_model_name=None),
     )
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
-    monkeypatch.setattr("deerflow.skills.manager.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.config.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.skills.manager.get_app_config", lambda: config)
     get_skill_history_file("demo-skill").write_text(
         '{"action":"human_edit","prev_content":' + json.dumps(original_content) + ',"new_content":' + json.dumps(edited_content) + "}\n",
         encoding="utf-8",
@@ -107,7 +107,7 @@ def test_custom_skill_rollback_blocked_by_scanner(monkeypatch, tmp_path):
     monkeypatch.setattr("app.gateway.routers.skills.refresh_skills_system_prompt_cache_async", _refresh)
 
     async def _scan(*args, **kwargs):
-        from deerflow.skills.security_scanner import ScanResult
+        from kiwi.skills.security_scanner import ScanResult
 
         return ScanResult(decision="block", reason="unsafe rollback")
 
@@ -136,8 +136,8 @@ def test_custom_skill_delete_preserves_history_and_allows_restore(monkeypatch, t
         skills=SimpleNamespace(get_skills_path=lambda: skills_root, container_path="/mnt/skills"),
         skill_evolution=SimpleNamespace(enabled=True, moderation_model_name=None),
     )
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
-    monkeypatch.setattr("deerflow.skills.manager.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.config.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.skills.manager.get_app_config", lambda: config)
     monkeypatch.setattr("app.gateway.routers.skills.scan_skill_content", lambda *args, **kwargs: _async_scan("allow", "ok"))
     refresh_calls = []
 
@@ -174,8 +174,8 @@ def test_custom_skill_delete_continues_when_history_write_is_readonly(monkeypatc
         skills=SimpleNamespace(get_skills_path=lambda: skills_root, container_path="/mnt/skills"),
         skill_evolution=SimpleNamespace(enabled=True, moderation_model_name=None),
     )
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
-    monkeypatch.setattr("deerflow.skills.manager.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.config.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.skills.manager.get_app_config", lambda: config)
     refresh_calls = []
 
     async def _refresh():
@@ -208,8 +208,8 @@ def test_custom_skill_delete_fails_when_skill_dir_removal_fails(monkeypatch, tmp
         skills=SimpleNamespace(get_skills_path=lambda: skills_root, container_path="/mnt/skills"),
         skill_evolution=SimpleNamespace(enabled=True, moderation_model_name=None),
     )
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
-    monkeypatch.setattr("deerflow.skills.manager.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.config.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.skills.manager.get_app_config", lambda: config)
     refresh_calls = []
 
     async def _refresh():
@@ -250,7 +250,7 @@ def test_update_skill_refreshes_prompt_cache_before_return(monkeypatch, tmp_path
 
     monkeypatch.setattr("app.gateway.routers.skills.load_skills", _load_skills)
     # Use a real ExtensionsConfig so the router's model_dump() round-trip works.
-    from deerflow.config.extensions_config import ExtensionsConfig
+    from kiwi.config.extensions_config import ExtensionsConfig
 
     monkeypatch.setattr("app.gateway.routers.skills.get_extensions_config", lambda: ExtensionsConfig())
     monkeypatch.setattr("app.gateway.routers.skills.reload_extensions_config", lambda: None)

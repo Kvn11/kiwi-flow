@@ -56,7 +56,7 @@ This document provides a comprehensive overview of the DeerFlow backend architec
 
 The LangGraph server is the core agent runtime, built on LangGraph for robust multi-agent workflow orchestration.
 
-**Entry Point**: `packages/harness/deerflow/agents/lead_agent/agent.py:make_lead_agent`
+**Entry Point**: `packages/harness/kiwi/agents/lead_agent/agent.py:make_lead_agent`
 
 **Key Responsibilities**:
 - Agent creation and configuration
@@ -71,7 +71,7 @@ The LangGraph server is the core agent runtime, built on LangGraph for robust mu
 {
   "agent": {
     "type": "agent",
-    "path": "deerflow.agents:make_lead_agent"
+    "path": "kiwi.agents:make_lead_agent"
   }
 }
 ```
@@ -163,7 +163,7 @@ class ThreadState(AgentState):
               ▼                                         ▼
 ┌─────────────────────────┐              ┌─────────────────────────┐
 │  LocalSandboxProvider   │              │  AioSandboxProvider     │
-│  (packages/harness/deerflow/sandbox/local.py) │              │  (packages/harness/deerflow/community/)       │
+│  (packages/harness/kiwi/sandbox/local.py) │              │  (packages/harness/kiwi/community/)       │
 │                         │              │                         │
 │  - Singleton instance   │              │  - Docker-based         │
 │  - Direct execution     │              │  - Isolated containers  │
@@ -197,7 +197,7 @@ class ThreadState(AgentState):
 
 ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐
 │   Built-in Tools    │  │  Configured Tools   │  │     MCP Tools       │
-│  (packages/harness/deerflow/tools/)       │  │  (config.yaml)      │  │  (extensions.json)  │
+│  (packages/harness/kiwi/tools/)       │  │  (config.yaml)      │  │  (extensions.json)  │
 ├─────────────────────┤  ├─────────────────────┤  ├─────────────────────┤
 │ - present_files     │  │ - web_search        │  │ - github            │
 │ - ask_clarification │  │ - web_fetch         │  │ - filesystem        │
@@ -213,7 +213,7 @@ class ThreadState(AgentState):
                                    ▼
                       ┌─────────────────────────┐
                       │   get_available_tools() │
-                      │   (packages/harness/deerflow/tools/__init__)  │
+                      │   (packages/harness/kiwi/tools/__init__)  │
                       └─────────────────────────┘
 ```
 
@@ -222,7 +222,7 @@ class ThreadState(AgentState):
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                          Model Factory                                   │
-│                     (packages/harness/deerflow/models/factory.py)                              │
+│                     (packages/harness/kiwi/models/factory.py)                              │
 └─────────────────────────────────────────────────────────────────────────┘
 
 config.yaml:
@@ -269,7 +269,7 @@ config.yaml:
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                          MCP Integration                                 │
-│                        (packages/harness/deerflow/mcp/manager.py)                              │
+│                        (packages/harness/kiwi/mcp/manager.py)                              │
 └─────────────────────────────────────────────────────────────────────────┘
 
 extensions_config.json:
@@ -307,7 +307,7 @@ extensions_config.json:
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                          Skills System                                   │
-│                       (packages/harness/deerflow/skills/loader.py)                             │
+│                       (packages/harness/kiwi/skills/loader.py)                             │
 └─────────────────────────────────────────────────────────────────────────┘
 
 Directory Structure:

@@ -77,12 +77,12 @@ print()
 
 MIGRATIONS = {
     1: {
-        'description': 'Rename src.* module paths to deerflow.*',
+        'description': 'Rename src.* module paths to kiwi.*',
         'replacements': [
-            ('src.community.', 'deerflow.community.'),
-            ('src.sandbox.', 'deerflow.sandbox.'),
-            ('src.models.', 'deerflow.models.'),
-            ('src.tools.', 'deerflow.tools.'),
+            ('src.community.', 'kiwi.community.'),
+            ('src.sandbox.', 'kiwi.sandbox.'),
+            ('src.models.', 'kiwi.models.'),
+            ('src.tools.', 'kiwi.tools.'),
         ],
     },
     # Future migrations go here:

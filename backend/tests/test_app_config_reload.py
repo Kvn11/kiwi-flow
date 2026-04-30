@@ -6,15 +6,15 @@ from pathlib import Path
 
 import yaml
 
-from deerflow.config.agents_api_config import get_agents_api_config
-from deerflow.config.app_config import get_app_config, reset_app_config
+from kiwi.config.agents_api_config import get_agents_api_config
+from kiwi.config.app_config import get_app_config, reset_app_config
 
 
 def _write_config(path: Path, *, model_name: str, supports_thinking: bool) -> None:
     path.write_text(
         yaml.safe_dump(
             {
-                "sandbox": {"use": "deerflow.sandbox.local:LocalSandboxProvider"},
+                "sandbox": {"use": "kiwi.sandbox.local:LocalSandboxProvider"},
                 "models": [
                     {
                         "name": model_name,
@@ -37,7 +37,7 @@ def _write_config_with_agents_api(
     agents_api: dict | None = None,
 ) -> None:
     config = {
-        "sandbox": {"use": "deerflow.sandbox.local:LocalSandboxProvider"},
+        "sandbox": {"use": "kiwi.sandbox.local:LocalSandboxProvider"},
         "models": [
             {
                 "name": model_name,

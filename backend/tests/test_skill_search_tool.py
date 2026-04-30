@@ -6,12 +6,12 @@ from unittest.mock import patch
 
 import pytest
 
-from deerflow.skill_library.registry import (
+from kiwi.skill_library.registry import (
     SkillLibraryRegistry,
     reset_library_registry,
 )
-from deerflow.skill_library.types import LibrarySkill
-from deerflow.tools.builtins.skill_search import skill_search
+from kiwi.skill_library.types import LibrarySkill
+from kiwi.tools.builtins.skill_search import skill_search
 
 
 def _make_skill(name: str, description: str) -> LibrarySkill:
@@ -40,19 +40,19 @@ def _invoke(query: str) -> str:
 
 
 def test_returns_message_when_no_registry():
-    with patch("deerflow.tools.builtins.skill_search.get_library_registry", return_value=None):
+    with patch("kiwi.tools.builtins.skill_search.get_library_registry", return_value=None):
         assert _invoke("anything") == "No skill library available."
 
 
 def test_returns_message_when_registry_empty():
     empty = SkillLibraryRegistry([])
-    with patch("deerflow.tools.builtins.skill_search.get_library_registry", return_value=empty):
+    with patch("kiwi.tools.builtins.skill_search.get_library_registry", return_value=empty):
         assert _invoke("anything") == "No skill library available."
 
 
 def test_returns_no_match_message_when_no_results():
     registry = SkillLibraryRegistry([_make_skill("alpha", "First")])
-    with patch("deerflow.tools.builtins.skill_search.get_library_registry", return_value=registry):
+    with patch("kiwi.tools.builtins.skill_search.get_library_registry", return_value=registry):
         assert _invoke("zzzzz") == "No skills found matching: zzzzz"
 
 
@@ -63,7 +63,7 @@ def test_returns_json_array_with_name_description_path():
             _make_skill("chart-viz", "Visualize charts"),
         ]
     )
-    with patch("deerflow.tools.builtins.skill_search.get_library_registry", return_value=registry):
+    with patch("kiwi.tools.builtins.skill_search.get_library_registry", return_value=registry):
         raw = _invoke("pdf")
 
     parsed = json.loads(raw)
@@ -78,7 +78,7 @@ def test_returns_json_array_with_name_description_path():
 
 def test_select_form_supported():
     registry = SkillLibraryRegistry([_make_skill("alpha", "A"), _make_skill("beta", "B")])
-    with patch("deerflow.tools.builtins.skill_search.get_library_registry", return_value=registry):
+    with patch("kiwi.tools.builtins.skill_search.get_library_registry", return_value=registry):
         raw = _invoke("select:beta")
     parsed = json.loads(raw)
     assert {entry["name"] for entry in parsed} == {"beta"}

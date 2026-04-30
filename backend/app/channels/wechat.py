@@ -308,7 +308,7 @@ class WechatChannel(Channel):
             chat_id=msg.chat_id,
             context_token=context_token,
             text=text,
-            client_id_prefix="deerflow",
+            client_id_prefix="kiwi",
             max_retries=_max_retries,
         )
 

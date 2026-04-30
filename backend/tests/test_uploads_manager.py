@@ -1,8 +1,8 @@
-"""Tests for deerflow.uploads.manager — shared upload management logic."""
+"""Tests for kiwi.uploads.manager — shared upload management logic."""
 
 import pytest
 
-from deerflow.uploads.manager import (
+from kiwi.uploads.manager import (
     PathTraversalError,
     claim_unique_filename,
     delete_file_safe,

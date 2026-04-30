@@ -9,7 +9,7 @@ Covers:
 - Cooperative cancellation via cancel_event
 
 Note: Due to circular import issues in the main codebase, conftest.py mocks
-deerflow.subagents.executor. This test file uses delayed import via fixture to test
+kiwi.subagents.executor. This test file uses delayed import via fixture to test
 the real implementation in isolation.
 """
 
@@ -23,14 +23,14 @@ import pytest
 
 # Module names that need to be mocked to break circular imports
 _MOCKED_MODULE_NAMES = [
-    "deerflow.agents",
-    "deerflow.agents.thread_state",
-    "deerflow.agents.middlewares",
-    "deerflow.agents.middlewares.thread_data_middleware",
-    "deerflow.sandbox",
-    "deerflow.sandbox.middleware",
-    "deerflow.sandbox.security",
-    "deerflow.models",
+    "kiwi.agents",
+    "kiwi.agents.thread_state",
+    "kiwi.agents.middlewares",
+    "kiwi.agents.middlewares.thread_data_middleware",
+    "kiwi.sandbox",
+    "kiwi.sandbox.middleware",
+    "kiwi.sandbox.security",
+    "kiwi.models",
 ]
 
 
@@ -43,11 +43,11 @@ def _setup_executor_classes():
     """
     # Save original modules
     original_modules = {name: sys.modules.get(name) for name in _MOCKED_MODULE_NAMES}
-    original_executor = sys.modules.get("deerflow.subagents.executor")
+    original_executor = sys.modules.get("kiwi.subagents.executor")
 
     # Remove mocked executor if exists (from conftest.py)
-    if "deerflow.subagents.executor" in sys.modules:
-        del sys.modules["deerflow.subagents.executor"]
+    if "kiwi.subagents.executor" in sys.modules:
+        del sys.modules["kiwi.subagents.executor"]
 
     # Set up mocks
     for name in _MOCKED_MODULE_NAMES:
@@ -56,8 +56,8 @@ def _setup_executor_classes():
     # Import real classes inside fixture
     from langchain_core.messages import AIMessage, HumanMessage
 
-    from deerflow.subagents.config import SubagentConfig
-    from deerflow.subagents.executor import (
+    from kiwi.subagents.config import SubagentConfig
+    from kiwi.subagents.executor import (
         SubagentExecutor,
         SubagentResult,
         SubagentStatus,
@@ -84,9 +84,9 @@ def _setup_executor_classes():
 
     # Restore executor module (conftest.py mock)
     if original_executor is not None:
-        sys.modules["deerflow.subagents.executor"] = original_executor
-    elif "deerflow.subagents.executor" in sys.modules:
-        del sys.modules["deerflow.subagents.executor"]
+        sys.modules["kiwi.subagents.executor"] = original_executor
+    elif "kiwi.subagents.executor" in sys.modules:
+        del sys.modules["kiwi.subagents.executor"]
 
 
 # Helper classes that wrap real classes for testing
@@ -680,7 +680,7 @@ class TestCleanupBackgroundTask:
         # Re-import to get the real module with cleanup_background_task
         import importlib
 
-        from deerflow.subagents import executor
+        from kiwi.subagents import executor
 
         return importlib.reload(executor)
 
@@ -825,7 +825,7 @@ class TestCooperativeCancellation:
         """Import the executor module with real classes."""
         import importlib
 
-        from deerflow.subagents import executor
+        from kiwi.subagents import executor
 
         return importlib.reload(executor)
 
@@ -969,7 +969,7 @@ class TestCooperativeCancellation:
             execute_entered.set()
             execute_release.wait(timeout=5)
             # Return a minimal completed result (will be ignored because timeout fires first)
-            from deerflow.subagents.executor import SubagentResult as _R
+            from kiwi.subagents.executor import SubagentResult as _R
 
             return _R(task_id="x", trace_id="t", status=SubagentStatus.COMPLETED, result="late")
 

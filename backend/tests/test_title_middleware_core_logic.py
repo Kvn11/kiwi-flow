@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 from langchain_core.messages import AIMessage, HumanMessage
 
-from deerflow.agents.middlewares import title_middleware as title_middleware_module
-from deerflow.agents.middlewares.title_middleware import TitleMiddleware
-from deerflow.config.title_config import TitleConfig, get_title_config, set_title_config
+from kiwi.agents.middlewares import title_middleware as title_middleware_module
+from kiwi.agents.middlewares.title_middleware import TitleMiddleware
+from kiwi.config.title_config import TitleConfig, get_title_config, set_title_config
 
 
 def _clone_title_config(config: TitleConfig) -> TitleConfig:

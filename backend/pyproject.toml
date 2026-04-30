@@ -5,7 +5,7 @@ description = "LangGraph-based AI agent system with sandbox execution capabiliti
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "deerflow-harness",
+    "kiwi-harness",
     "fastapi>=0.115.0",
     "httpx>=0.28.0",
     "python-multipart>=0.0.26",
@@ -26,4 +26,4 @@ dev = ["prompt-toolkit>=3.0.0", "pytest>=9.0.3", "ruff>=0.14.11"]
 members = ["packages/harness"]
 
 [tool.uv.sources]
-deerflow-harness = { workspace = true }
+kiwi-harness = { workspace = true }

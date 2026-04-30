@@ -6,8 +6,8 @@ from dataclasses import dataclass
 
 from wizard.ui import ask_choice, ask_yes_no, print_header, print_info, print_warning
 
-LOCAL_SANDBOX = "deerflow.sandbox.local:LocalSandboxProvider"
-CONTAINER_SANDBOX = "deerflow.community.aio_sandbox:AioSandboxProvider"
+LOCAL_SANDBOX = "kiwi.sandbox.local:LocalSandboxProvider"
+CONTAINER_SANDBOX = "kiwi.community.aio_sandbox:AioSandboxProvider"
 
 
 @dataclass

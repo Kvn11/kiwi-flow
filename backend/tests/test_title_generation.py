@@ -2,8 +2,8 @@
 
 import pytest
 
-from deerflow.agents.middlewares.title_middleware import TitleMiddleware
-from deerflow.config.title_config import TitleConfig, get_title_config, set_title_config
+from kiwi.agents.middlewares.title_middleware import TitleMiddleware
+from kiwi.config.title_config import TitleConfig, get_title_config, set_title_config
 
 
 class TestTitleConfig:

@@ -6,9 +6,9 @@ from unittest.mock import MagicMock
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, RemoveMessage, ToolMessage
 
-from deerflow.agents.memory.summarization_hook import memory_flush_hook
-from deerflow.agents.middlewares.summarization_middleware import DeerFlowSummarizationMiddleware, SummarizationEvent
-from deerflow.config.memory_config import MemoryConfig
+from kiwi.agents.memory.summarization_hook import memory_flush_hook
+from kiwi.agents.middlewares.summarization_middleware import DeerFlowSummarizationMiddleware, SummarizationEvent
+from kiwi.config.memory_config import MemoryConfig
 
 
 def _messages() -> list:
@@ -139,8 +139,8 @@ async def test_abefore_model_calls_hooks_same_as_sync() -> None:
 
 def test_memory_flush_hook_skips_when_memory_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     queue = MagicMock()
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=False))
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
+    monkeypatch.setattr("kiwi.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=False))
+    monkeypatch.setattr("kiwi.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
 
     memory_flush_hook(
         SummarizationEvent(
@@ -157,8 +157,8 @@ def test_memory_flush_hook_skips_when_memory_disabled(monkeypatch: pytest.Monkey
 
 def test_memory_flush_hook_skips_when_thread_id_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     queue = MagicMock()
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=True))
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
+    monkeypatch.setattr("kiwi.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=True))
+    monkeypatch.setattr("kiwi.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
 
     memory_flush_hook(
         SummarizationEvent(
@@ -180,8 +180,8 @@ def test_memory_flush_hook_enqueues_filtered_messages_and_flushes(monkeypatch: p
         AIMessage(content="Calling tool", tool_calls=[{"name": "search", "id": "tool-1", "args": {}}]),
         AIMessage(content="Final answer"),
     ]
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=True))
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
+    monkeypatch.setattr("kiwi.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=True))
+    monkeypatch.setattr("kiwi.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
 
     memory_flush_hook(
         SummarizationEvent(
@@ -492,8 +492,8 @@ def test_skill_rescue_only_preserves_skill_calls_with_matched_tool_results() -> 
 
 def test_memory_flush_hook_preserves_agent_scoped_memory(monkeypatch: pytest.MonkeyPatch) -> None:
     queue = MagicMock()
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=True))
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
+    monkeypatch.setattr("kiwi.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=True))
+    monkeypatch.setattr("kiwi.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
 
     memory_flush_hook(
         SummarizationEvent(

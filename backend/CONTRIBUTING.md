@@ -227,7 +227,7 @@ Example test:
 
 ```python
 import pytest
-from deerflow.models.factory import create_chat_model
+from kiwi.models.factory import create_chat_model
 
 def test_create_chat_model_with_valid_name():
     """Test that a valid model name creates a model instance."""
@@ -269,10 +269,10 @@ Include in your PR description:
 
 ### Adding New Tools
 
-1. Create tool in `packages/harness/deerflow/tools/builtins/` or `packages/harness/deerflow/community/`:
+1. Create tool in `packages/harness/kiwi/tools/builtins/` or `packages/harness/kiwi/community/`:
 
 ```python
-# packages/harness/deerflow/tools/builtins/my_tool.py
+# packages/harness/kiwi/tools/builtins/my_tool.py
 from langchain_core.tools import tool
 
 @tool
@@ -294,15 +294,15 @@ def my_tool(param: str) -> str:
 tools:
   - name: my_tool
     group: my_group
-    use: deerflow.tools.builtins.my_tool:my_tool
+    use: kiwi.tools.builtins.my_tool:my_tool
 ```
 
 ### Adding New Middleware
 
-1. Create middleware in `packages/harness/deerflow/agents/middlewares/`:
+1. Create middleware in `packages/harness/kiwi/agents/middlewares/`:
 
 ```python
-# packages/harness/deerflow/agents/middlewares/my_middleware.py
+# packages/harness/kiwi/agents/middlewares/my_middleware.py
 from langchain.agents.middleware import BaseMiddleware
 from langchain_core.runnables import RunnableConfig
 
@@ -315,7 +315,7 @@ class MyMiddleware(BaseMiddleware):
         return state
 ```
 
-2. Register in `packages/harness/deerflow/agents/lead_agent/agent.py`:
+2. Register in `packages/harness/kiwi/agents/lead_agent/agent.py`:
 
 ```python
 middlewares = [
@@ -360,7 +360,7 @@ app.include_router(my_router.router)
 
 When adding new configuration options:
 
-1. Update `packages/harness/deerflow/config/app_config.py` with new fields
+1. Update `packages/harness/kiwi/config/app_config.py` with new fields
 2. Add default values in `config.example.yaml`
 3. Document in `docs/CONFIGURATION.md`
 

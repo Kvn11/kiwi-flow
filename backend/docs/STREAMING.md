@@ -19,7 +19,7 @@
 | 维度 | Gateway 路径 | DeerFlowClient 路径 |
 |---|---|---|
 | 入口 | FastAPI `/runs/stream` endpoint | `DeerFlowClient.stream(message)` |
-| 触发层 | `runtime/runs/worker.py::run_agent` | `packages/harness/deerflow/client.py::DeerFlowClient.stream` |
+| 触发层 | `runtime/runs/worker.py::run_agent` | `packages/harness/kiwi/client.py::DeerFlowClient.stream` |
 | 执行模型 | `async def` + `agent.astream()` | sync generator + `agent.stream()` |
 | 事件传输 | `StreamBridge`（asyncio Queue）+ `sse_consumer` | 直接 `yield` |
 | 序列化 | `serialize(chunk)` → 纯 JSON dict，匹配 LangGraph Platform wire 格式 | `StreamEvent.data`，携带原生 LangChain 对象 |
@@ -339,12 +339,12 @@ assert "messages" in agent.stream.call_args.kwargs["stream_mode"]
 
 | 关心什么 | 看这里 |
 |---|---|
-| DeerFlowClient 嵌入式流 | `packages/harness/deerflow/client.py::DeerFlowClient.stream` |
-| `chat()` 的 delta 累加器 | `packages/harness/deerflow/client.py::DeerFlowClient.chat` |
-| Gateway async 流 | `packages/harness/deerflow/runtime/runs/worker.py::run_agent` |
+| DeerFlowClient 嵌入式流 | `packages/harness/kiwi/client.py::DeerFlowClient.stream` |
+| `chat()` 的 delta 累加器 | `packages/harness/kiwi/client.py::DeerFlowClient.chat` |
+| Gateway async 流 | `packages/harness/kiwi/runtime/runs/worker.py::run_agent` |
 | HTTP SSE 帧输出 | `app/gateway/services.py::sse_consumer` / `format_sse` |
-| 序列化到 wire 格式 | `packages/harness/deerflow/runtime/serialization.py` |
-| LangGraph mode 命名翻译 | `packages/harness/deerflow/runtime/runs/worker.py:117-121` |
+| 序列化到 wire 格式 | `packages/harness/kiwi/runtime/serialization.py` |
+| LangGraph mode 命名翻译 | `packages/harness/kiwi/runtime/runs/worker.py:117-121` |
 | 飞书渠道的增量卡片更新 | `app/channels/manager.py::_handle_streaming_chat` |
 | Channels 自带的 delta/cumulative 防御性累加 | `app/channels/manager.py::_merge_stream_text` |
 | Frontend useStream 支持的 mode 集合 | `frontend/src/core/api/stream-mode.ts` |

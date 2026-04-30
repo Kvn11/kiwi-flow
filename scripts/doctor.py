@@ -85,7 +85,7 @@ def _load_yaml_file(path: Path) -> dict:
 
 
 def _load_app_config(config_path: Path) -> object:
-    from deerflow.config.app_config import AppConfig
+    from kiwi.config.app_config import AppConfig
 
     return AppConfig.from_file(str(config_path))
 
@@ -389,7 +389,7 @@ def check_llm_auth(config_path: Path) -> list[CheckResult]:
             use = model.get("use", "")
             model_name = model.get("name", "default")
 
-            if use == "deerflow.models.openai_codex_provider:CodexChatModel":
+            if use == "kiwi.models.openai_codex_provider:CodexChatModel":
                 auth_path = Path(os.environ.get("CODEX_AUTH_PATH", "~/.codex/auth.json")).expanduser()
                 if auth_path.exists():
                     results.append(CheckResult(f"Codex CLI auth available (model: {model_name})", "ok", str(auth_path)))
@@ -403,7 +403,7 @@ def check_llm_auth(config_path: Path) -> list[CheckResult]:
                         )
                     )
 
-            if use == "deerflow.models.claude_provider:ClaudeChatModel":
+            if use == "kiwi.models.claude_provider:ClaudeChatModel":
                 credential_paths = [
                     Path(os.environ["CLAUDE_CODE_CREDENTIALS_PATH"]).expanduser()
                     for env_name in ("CLAUDE_CODE_CREDENTIALS_PATH",)

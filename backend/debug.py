@@ -5,7 +5,7 @@ Run this file directly in VS Code with breakpoints.
 
 Requirements:
     Run with `uv run` from the backend/ directory so that the uv workspace
-    resolves deerflow-harness and app packages correctly:
+    resolves kiwi-harness and app packages correctly:
 
         cd backend && PYTHONPATH=. uv run python debug.py
 
@@ -74,20 +74,20 @@ async def main():
     # leak onto the interactive terminal via Python's lastResort handler.
     _setup_logging("info")
 
-    from deerflow.config import get_app_config
+    from kiwi.config import get_app_config
 
     app_config = get_app_config()
     _update_logging_level(app_config.log_level)
 
-    # Delay the rest of the deerflow imports until *after* logging is installed
-    # so that any import-time side effects (e.g. deerflow.agents starts a
+    # Delay the rest of the kiwi imports until *after* logging is installed
+    # so that any import-time side effects (e.g. kiwi.agents starts a
     # background skill-loader thread on import) emit logs to debug.log instead
     # of leaking onto the interactive terminal via Python's lastResort handler.
     from langchain_core.messages import HumanMessage
     from langgraph.runtime import Runtime
 
-    from deerflow.agents import make_lead_agent
-    from deerflow.mcp import initialize_mcp_tools
+    from kiwi.agents import make_lead_agent
+    from kiwi.mcp import initialize_mcp_tools
 
     # Initialize MCP tools at startup
     try:

@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from deerflow.config.extensions_config import ExtensionsConfig, reset_extensions_config, set_extensions_config
-from deerflow.skill_library.loader import get_skill_library_root_path, load_skill_library
+from kiwi.config.extensions_config import ExtensionsConfig, reset_extensions_config, set_extensions_config
+from kiwi.skill_library.loader import get_skill_library_root_path, load_skill_library
 
 
 def _write_skill(skill_dir: Path, name: str, description: str) -> None:

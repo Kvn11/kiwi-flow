@@ -26,7 +26,7 @@
 
 ## Executive Summary
 
-DeerFlow (Deep Exploration and Efficient Research Flow) is an open-source multi-agent research automation framework developed by ByteDance and released under the MIT license in May 2025 [Create Your Own Deep Research Agent with DeerFlow](https://thesequence.substack.com/p/the-sequence-engineering-661-create). The framework implements a graph-based orchestration of specialized agents that automate research pipelines end-to-end, combining language models with tools like web search engines, crawlers, and Python execution. With 19,531 stars and 2,452 forks on GitHub, DeerFlow has established itself as a significant player in the deep research automation space, offering both console and web UI options with support for local LLM deployment and extensive tool integrations [DeerFlow: A Game-Changer for Automated Research and Content Creation](https://medium.com/@mingyang.heaven/deerflow-a-game-changer-for-automated-research-and-content-creation-83612f683e7a).
+DeerFlow (Deep Exploration and Efficient Research Flow) is an open-source multi-agent research automation framework developed by ByteDance and released under the MIT license in May 2025 [Create Your Own Deep Research Agent with DeerFlow](https://thesequence.substack.com/p/the-sequence-engineering-661-create). The framework implements a graph-based orchestration of specialized agents that automate research pipelines end-to-end, combining language models with tools like web search engines, crawlers, and Python execution. With 19,531 stars and 2,452 forks on GitHub, DeerFlow has established itself as a significant player in the deep research automation space, offering both console and web UI options with support for local LLM deployment and extensive tool integrations [DeerFlow: A Game-Changer for Automated Research and Content Creation](https://medium.com/@mingyang.heaven/kiwi-a-game-changer-for-automated-research-and-content-creation-83612f683e7a).
 
 ---
 
@@ -42,13 +42,13 @@ DeerFlow was created by ByteDance and open-sourced on May 7, 2025, with the init
 
 #### August 2025 - December 2025
 
-During this period, DeerFlow underwent significant feature expansion including MCP (Model Context Protocol) integration, text-to-speech capabilities, podcast generation, and support for multiple search engines (Tavily, InfoQuest, Brave Search, DuckDuckGo, Arxiv) [DeerFlow: Multi-Agent AI For Research Automation 2025](https://firexcore.com/blog/what-is-deerflow/). The framework gained attention for its human-in-the-loop collaboration features, allowing users to review and edit research plans before execution. Community contributions grew substantially, with 88 contributors participating in the project by early 2026, and the framework was integrated into the FaaS Application Center of Volcengine for cloud deployment.
+During this period, DeerFlow underwent significant feature expansion including MCP (Model Context Protocol) integration, text-to-speech capabilities, podcast generation, and support for multiple search engines (Tavily, InfoQuest, Brave Search, DuckDuckGo, Arxiv) [DeerFlow: Multi-Agent AI For Research Automation 2025](https://firexcore.com/blog/what-is-kiwi/). The framework gained attention for its human-in-the-loop collaboration features, allowing users to review and edit research plans before execution. Community contributions grew substantially, with 88 contributors participating in the project by early 2026, and the framework was integrated into the FaaS Application Center of Volcengine for cloud deployment.
 
 ### PHASE 3: Maturity and DeerFlow 2.0 Transition
 
 #### January 2026 - Present
 
-As of February 2026, DeerFlow has entered a transition phase to DeerFlow 2.0, with active development continuing on the main branch [DeerFlow Official Website](https://deerflow.tech/). Recent commits show ongoing improvements to JSON repair handling, MCP tool integration, and fallback report generation mechanisms. The framework now supports private knowledgebases including RAGFlow, Qdrant, Milvus, and VikingDB, along with Docker and Docker Compose deployment options for production environments.
+As of February 2026, DeerFlow has entered a transition phase to DeerFlow 2.0, with active development continuing on the main branch [DeerFlow Official Website](https://kiwi.tech/). Recent commits show ongoing improvements to JSON repair handling, MCP tool integration, and fallback report generation mechanisms. The framework now supports private knowledgebases including RAGFlow, Qdrant, Milvus, and VikingDB, along with Docker and Docker Compose deployment options for production environments.
 
 ---
 
@@ -56,7 +56,7 @@ As of February 2026, DeerFlow has entered a transition phase to DeerFlow 2.0, wi
 
 ### Technical Architecture and Design Philosophy
 
-DeerFlow implements a modular multi-agent system architecture designed for automated research and code analysis [DeerFlow: A Game-Changer for Automated Research and Content Creation](https://medium.com/@mingyang.heaven/deerflow-a-game-changer-for-automated-research-and-content-creation-83612f683e7a). The system is built on LangGraph, enabling a flexible state-based workflow where components communicate through a well-defined message passing system. The architecture employs a streamlined workflow with specialized agents:
+DeerFlow implements a modular multi-agent system architecture designed for automated research and code analysis [DeerFlow: A Game-Changer for Automated Research and Content Creation](https://medium.com/@mingyang.heaven/kiwi-a-game-changer-for-automated-research-and-content-creation-83612f683e7a). The system is built on LangGraph, enabling a flexible state-based workflow where components communicate through a well-defined message passing system. The architecture employs a streamlined workflow with specialized agents:
 
 ```mermaid
 flowchart TD
@@ -77,7 +77,7 @@ The Coordinator serves as the entry point managing workflow lifecycle, initiatin
 
 DeerFlow offers extensive capabilities for deep research automation:
 
-1. **Multi-Engine Search Integration**: Supports Tavily (default), InfoQuest (BytePlus's AI-optimized search), Brave Search, DuckDuckGo, and Arxiv for scientific papers [DeerFlow: Multi-Agent AI For Research Automation 2025](https://firexcore.com/blog/what-is-deerflow/).
+1. **Multi-Engine Search Integration**: Supports Tavily (default), InfoQuest (BytePlus's AI-optimized search), Brave Search, DuckDuckGo, and Arxiv for scientific papers [DeerFlow: Multi-Agent AI For Research Automation 2025](https://firexcore.com/blog/what-is-kiwi/).
 
 2. **Advanced Crawling Tools**: Includes Jina (default) and InfoQuest crawlers with configurable parameters, timeout settings, and powerful content extraction capabilities.
 
@@ -179,7 +179,7 @@ DeerFlow occupies a unique position in the deep research framework landscape by 
 
 ## Key Success Factors
 
-1. **ByteDance Backing**: Corporate sponsorship provides resources, expertise, and credibility while maintaining open-source accessibility [DeerFlow: A Game-Changer for Automated Research and Content Creation](https://medium.com/@mingyang.heaven/deerflow-a-game-changer-for-automated-research-and-content-creation-83612f683e7a).
+1. **ByteDance Backing**: Corporate sponsorship provides resources, expertise, and credibility while maintaining open-source accessibility [DeerFlow: A Game-Changer for Automated Research and Content Creation](https://medium.com/@mingyang.heaven/kiwi-a-game-changer-for-automated-research-and-content-creation-83612f683e7a).
 
 2. **Modern Technical Foundation**: Built on LangGraph and LangChain, DeerFlow leverages established frameworks while adding significant value through multi-agent orchestration.
 
@@ -198,18 +198,18 @@ DeerFlow occupies a unique position in the deep research framework landscape by 
 ### Primary Sources
 
 1. **DeerFlow GitHub Repository**: Official source code, documentation, and development history [DeerFlow GitHub Repository](https://github.com/bytedance/deer-flow)
-2. **DeerFlow Official Website**: Platform showcasing features, case studies, and deployment options [DeerFlow Official Website](https://deerflow.tech/)
+2. **DeerFlow Official Website**: Platform showcasing features, case studies, and deployment options [DeerFlow Official Website](https://kiwi.tech/)
 3. **GitHub API Data**: Repository metrics, contributor statistics, and commit history
 
 ### Media Coverage
 
 1. **The Sequence Engineering**: Technical analysis of DeerFlow architecture and capabilities [Create Your Own Deep Research Agent with DeerFlow](https://thesequence.substack.com/p/the-sequence-engineering-661-create)
-2. **Medium Articles**: Community perspectives on DeerFlow implementation and use cases [DeerFlow: A Game-Changer for Automated Research and Content Creation](https://medium.com/@mingyang.heaven/deerflow-a-game-changer-for-automated-research-and-content-creation-83612f683e7a)
+2. **Medium Articles**: Community perspectives on DeerFlow implementation and use cases [DeerFlow: A Game-Changer for Automated Research and Content Creation](https://medium.com/@mingyang.heaven/kiwi-a-game-changer-for-automated-research-and-content-creation-83612f683e7a)
 3. **YouTube Demonstrations**: Video walkthroughs of DeerFlow functionality and local deployment [ByteDance DeerFlow - (Deep Research Agents with a LOCAL LLM!)](https://www.youtube.com/watch?v=Ui0ovCVDYGs)
 
 ### Technical Sources
 
-1. **FireXCore Analysis**: Feature overview and technical assessment [DeerFlow: Multi-Agent AI For Research Automation 2025](https://firexcore.com/blog/what-is-deerflow/)
+1. **FireXCore Analysis**: Feature overview and technical assessment [DeerFlow: Multi-Agent AI For Research Automation 2025](https://firexcore.com/blog/what-is-kiwi/)
 2. **Oreate AI Comparison**: Framework benchmarking and market positioning analysis [Navigating the Landscape of Deep Research Frameworks](https://www.oreateai.com/blog/navigating-the-landscape-of-deep-research-frameworks-a-comprehensive-comparison/0dc13e48eb8c756650112842c8d1a184)
 
 ---

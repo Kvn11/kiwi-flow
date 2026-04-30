@@ -2,8 +2,8 @@ import threading
 import time
 from unittest.mock import MagicMock, patch
 
-from deerflow.agents.memory.queue import ConversationContext, MemoryUpdateQueue
-from deerflow.config.memory_config import MemoryConfig
+from kiwi.agents.memory.queue import ConversationContext, MemoryUpdateQueue
+from kiwi.config.memory_config import MemoryConfig
 
 
 def _memory_config(**overrides: object) -> MemoryConfig:
@@ -17,7 +17,7 @@ def test_queue_add_preserves_existing_correction_flag_for_same_thread() -> None:
     queue = MemoryUpdateQueue()
 
     with (
-        patch("deerflow.agents.memory.queue.get_memory_config", return_value=_memory_config(enabled=True)),
+        patch("kiwi.agents.memory.queue.get_memory_config", return_value=_memory_config(enabled=True)),
         patch.object(queue, "_reset_timer"),
     ):
         queue.add(thread_id="thread-1", messages=["first"], correction_detected=True)
@@ -41,7 +41,7 @@ def test_process_queue_forwards_correction_flag_to_updater() -> None:
     mock_updater = MagicMock()
     mock_updater.update_memory.return_value = True
 
-    with patch("deerflow.agents.memory.updater.MemoryUpdater", return_value=mock_updater):
+    with patch("kiwi.agents.memory.updater.MemoryUpdater", return_value=mock_updater):
         queue._process_queue()
 
     mock_updater.update_memory.assert_called_once_with(
@@ -57,7 +57,7 @@ def test_queue_add_preserves_existing_reinforcement_flag_for_same_thread() -> No
     queue = MemoryUpdateQueue()
 
     with (
-        patch("deerflow.agents.memory.queue.get_memory_config", return_value=_memory_config(enabled=True)),
+        patch("kiwi.agents.memory.queue.get_memory_config", return_value=_memory_config(enabled=True)),
         patch.object(queue, "_reset_timer"),
     ):
         queue.add(thread_id="thread-1", messages=["first"], reinforcement_detected=True)
@@ -81,7 +81,7 @@ def test_process_queue_forwards_reinforcement_flag_to_updater() -> None:
     mock_updater = MagicMock()
     mock_updater.update_memory.return_value = True
 
-    with patch("deerflow.agents.memory.updater.MemoryUpdater", return_value=mock_updater):
+    with patch("kiwi.agents.memory.updater.MemoryUpdater", return_value=mock_updater):
         queue._process_queue()
 
     mock_updater.update_memory.assert_called_once_with(
@@ -99,7 +99,7 @@ def test_flush_nowait_cancels_existing_timer_and_starts_immediate_timer() -> Non
     queue._timer = existing_timer
     created_timer = MagicMock()
 
-    with patch("deerflow.agents.memory.queue.threading.Timer", return_value=created_timer) as timer_cls:
+    with patch("kiwi.agents.memory.queue.threading.Timer", return_value=created_timer) as timer_cls:
         queue.flush_nowait()
 
     existing_timer.cancel.assert_called_once_with()
@@ -116,8 +116,8 @@ def test_add_nowait_cancels_existing_timer_and_starts_immediate_timer() -> None:
     created_timer = MagicMock()
 
     with (
-        patch("deerflow.agents.memory.queue.get_memory_config", return_value=_memory_config(enabled=True)),
-        patch("deerflow.agents.memory.queue.threading.Timer", return_value=created_timer) as timer_cls,
+        patch("kiwi.agents.memory.queue.get_memory_config", return_value=_memory_config(enabled=True)),
+        patch("kiwi.agents.memory.queue.threading.Timer", return_value=created_timer) as timer_cls,
     ):
         queue.add_nowait(thread_id="thread-1", messages=["conversation"], agent_name="lead-agent")
 
@@ -134,7 +134,7 @@ def test_process_queue_reschedules_immediately_when_already_processing() -> None
     queue._processing = True
     created_timer = MagicMock()
 
-    with patch("deerflow.agents.memory.queue.threading.Timer", return_value=created_timer) as timer_cls:
+    with patch("kiwi.agents.memory.queue.threading.Timer", return_value=created_timer) as timer_cls:
         queue._process_queue()
 
     timer_cls.assert_called_once_with(0, queue._process_queue)

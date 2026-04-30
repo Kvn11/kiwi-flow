@@ -14,11 +14,11 @@ Explore DeerFlow on GitHub: [github.com/bytedance/deer-flow](https://github.com/
 
 ## 🌐 Official Website
 
-Visit the official website of DeerFlow: [deerflow.tech](https://deerflow.tech/)
+Visit the official website of DeerFlow: [kiwi.tech](https://kiwi.tech/)
 
 ## 📧 Support
 
-If you have any questions or need help, please contact us at [support@deerflow.tech](mailto:support@deerflow.tech).
+If you have any questions or need help, please contact us at [support@kiwi.tech](mailto:support@kiwi.tech).
 
 ---
 

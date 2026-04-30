@@ -4,7 +4,7 @@ the model_dump round-trip used by the gateway routers."""
 import json
 from pathlib import Path
 
-from deerflow.config.extensions_config import ExtensionsConfig, LibrarySkillStateConfig, SkillStateConfig
+from kiwi.config.extensions_config import ExtensionsConfig, LibrarySkillStateConfig, SkillStateConfig
 
 
 def test_is_library_skill_enabled_defaults_true_when_absent():

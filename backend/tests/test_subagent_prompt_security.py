@@ -1,7 +1,7 @@
 """Tests for subagent availability and prompt exposure under local bash hardening."""
 
-from deerflow.agents.lead_agent import prompt as prompt_module
-from deerflow.subagents import registry as registry_module
+from kiwi.agents.lead_agent import prompt as prompt_module
+from kiwi.subagents import registry as registry_module
 
 
 def test_get_available_subagent_names_hides_bash_when_host_bash_disabled(monkeypatch) -> None:
@@ -44,21 +44,21 @@ def test_build_subagent_section_includes_bash_when_available(monkeypatch) -> Non
 
 
 def test_bash_subagent_prompt_mentions_workspace_relative_paths() -> None:
-    from deerflow.subagents.builtins.bash_agent import BASH_AGENT_CONFIG
+    from kiwi.subagents.builtins.bash_agent import BASH_AGENT_CONFIG
 
     assert "Treat `/mnt/user-data/workspace` as the default working directory for file IO" in BASH_AGENT_CONFIG.system_prompt
     assert "`hello.txt`, `../uploads/input.csv`, and `../outputs/result.md`" in BASH_AGENT_CONFIG.system_prompt
 
 
 def test_general_purpose_subagent_prompt_mentions_workspace_relative_paths() -> None:
-    from deerflow.subagents.builtins.general_purpose import GENERAL_PURPOSE_CONFIG
+    from kiwi.subagents.builtins.general_purpose import GENERAL_PURPOSE_CONFIG
 
     assert "Treat `/mnt/user-data/workspace` as the default working directory for coding and file IO" in GENERAL_PURPOSE_CONFIG.system_prompt
     assert "`hello.txt`, `../uploads/input.csv`, and `../outputs/result.md`" in GENERAL_PURPOSE_CONFIG.system_prompt
 
 
 def test_general_purpose_subagent_prompt_includes_discover_first_block() -> None:
-    from deerflow.subagents.builtins.general_purpose import GENERAL_PURPOSE_CONFIG
+    from kiwi.subagents.builtins.general_purpose import GENERAL_PURPOSE_CONFIG
 
     prompt = GENERAL_PURPOSE_CONFIG.system_prompt
     assert "<discover_first>" in prompt
@@ -67,7 +67,7 @@ def test_general_purpose_subagent_prompt_includes_discover_first_block() -> None
 
 
 def test_bash_subagent_prompt_includes_discover_first_block() -> None:
-    from deerflow.subagents.builtins.bash_agent import BASH_AGENT_CONFIG
+    from kiwi.subagents.builtins.bash_agent import BASH_AGENT_CONFIG
 
     prompt = BASH_AGENT_CONFIG.system_prompt
     assert "<discover_first>" in prompt
@@ -76,7 +76,7 @@ def test_bash_subagent_prompt_includes_discover_first_block() -> None:
 
 
 def test_bash_subagent_includes_skill_search_in_tool_whitelist() -> None:
-    from deerflow.subagents.builtins.bash_agent import BASH_AGENT_CONFIG
+    from kiwi.subagents.builtins.bash_agent import BASH_AGENT_CONFIG
 
     # The bash agent uses an explicit allowlist (not inheritance) — skill_search
     # must be listed so the agent can actually call the tool its prompt advertises.

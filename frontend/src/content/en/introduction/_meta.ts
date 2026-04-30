@@ -1,7 +1,7 @@
 import type { MetaRecord } from "nextra";
 
 const meta: MetaRecord = {
-  "why-deerflow": {
+  "why-kiwi": {
     title: "Why DeerFlow",
   },
   "core-concepts": {

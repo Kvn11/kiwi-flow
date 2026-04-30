@@ -8,7 +8,7 @@ See: https://github.com/bytedance/deer-flow/issues/1149
 
 from langchain_core.messages import ToolMessage
 
-from deerflow.client import DeerFlowClient
+from kiwi.client import DeerFlowClient
 
 # ---------------------------------------------------------------------------
 # _serialize_message

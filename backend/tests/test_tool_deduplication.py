@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 from langchain_core.tools import BaseTool, tool
 
-from deerflow.tools.tools import get_available_tools
+from kiwi.tools.tools import get_available_tools
 
 # ---------------------------------------------------------------------------
 # Fixture tools
@@ -56,24 +56,24 @@ def _make_minimal_config(tools):
     return config
 
 
-@patch("deerflow.tools.tools.get_app_config")
-@patch("deerflow.tools.tools.is_host_bash_allowed", return_value=True)
-@patch("deerflow.tools.tools.reset_deferred_registry")
+@patch("kiwi.tools.tools.get_app_config")
+@patch("kiwi.tools.tools.is_host_bash_allowed", return_value=True)
+@patch("kiwi.tools.tools.reset_deferred_registry")
 def test_no_duplicates_returned(mock_reset, mock_bash, mock_cfg):
     """get_available_tools() never returns two tools with the same name."""
     mock_cfg.return_value = _make_minimal_config([])
 
     # Patch the builtin tools so we control exactly what comes back.
-    with patch("deerflow.tools.tools.BUILTIN_TOOLS", [_tool_alpha, _tool_alpha_dup, _tool_beta]):
+    with patch("kiwi.tools.tools.BUILTIN_TOOLS", [_tool_alpha, _tool_alpha_dup, _tool_beta]):
         result = get_available_tools(include_mcp=False)
 
     names = [t.name for t in result]
     assert len(names) == len(set(names)), f"Duplicate names detected: {names}"
 
 
-@patch("deerflow.tools.tools.get_app_config")
-@patch("deerflow.tools.tools.is_host_bash_allowed", return_value=True)
-@patch("deerflow.tools.tools.reset_deferred_registry")
+@patch("kiwi.tools.tools.get_app_config")
+@patch("kiwi.tools.tools.is_host_bash_allowed", return_value=True)
+@patch("kiwi.tools.tools.reset_deferred_registry")
 def test_first_occurrence_wins(mock_reset, mock_bash, mock_cfg):
     """When duplicates exist, the first occurrence is kept."""
     mock_cfg.return_value = _make_minimal_config([])
@@ -83,24 +83,24 @@ def test_first_occurrence_wins(mock_reset, mock_bash, mock_cfg):
     sentinel_alpha_dup = MagicMock(spec=BaseTool, name="_sentinel_dup")
     sentinel_alpha_dup.name = _tool_alpha.name  # same name — should be dropped
 
-    with patch("deerflow.tools.tools.BUILTIN_TOOLS", [sentinel_alpha, sentinel_alpha_dup, _tool_beta]):
+    with patch("kiwi.tools.tools.BUILTIN_TOOLS", [sentinel_alpha, sentinel_alpha_dup, _tool_beta]):
         result = get_available_tools(include_mcp=False)
 
     returned_alpha = next(t for t in result if t.name == _tool_alpha.name)
     assert returned_alpha is sentinel_alpha
 
 
-@patch("deerflow.tools.tools.get_app_config")
-@patch("deerflow.tools.tools.is_host_bash_allowed", return_value=True)
-@patch("deerflow.tools.tools.reset_deferred_registry")
+@patch("kiwi.tools.tools.get_app_config")
+@patch("kiwi.tools.tools.is_host_bash_allowed", return_value=True)
+@patch("kiwi.tools.tools.reset_deferred_registry")
 def test_duplicate_triggers_warning(mock_reset, mock_bash, mock_cfg, caplog):
     """A warning is logged for every skipped duplicate."""
     import logging
 
     mock_cfg.return_value = _make_minimal_config([])
 
-    with patch("deerflow.tools.tools.BUILTIN_TOOLS", [_tool_alpha, _tool_alpha_dup]):
-        with caplog.at_level(logging.WARNING, logger="deerflow.tools.tools"):
+    with patch("kiwi.tools.tools.BUILTIN_TOOLS", [_tool_alpha, _tool_alpha_dup]):
+        with caplog.at_level(logging.WARNING, logger="kiwi.tools.tools"):
             get_available_tools(include_mcp=False)
 
     assert any("Duplicate tool name" in r.message for r in caplog.records), "Expected a duplicate-tool warning in log output"

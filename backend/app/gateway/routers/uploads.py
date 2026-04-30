@@ -7,10 +7,10 @@ import stat
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from deerflow.config.app_config import get_app_config
-from deerflow.config.paths import get_paths
-from deerflow.sandbox.sandbox_provider import SandboxProvider, get_sandbox_provider
-from deerflow.uploads.manager import (
+from kiwi.config.app_config import get_app_config
+from kiwi.config.paths import get_paths
+from kiwi.sandbox.sandbox_provider import SandboxProvider, get_sandbox_provider
+from kiwi.uploads.manager import (
     PathTraversalError,
     delete_file_safe,
     enrich_file_listing,
@@ -21,7 +21,7 @@ from deerflow.uploads.manager import (
     upload_artifact_url,
     upload_virtual_path,
 )
-from deerflow.utils.file_conversion import CONVERTIBLE_EXTENSIONS, convert_file_to_markdown
+from kiwi.utils.file_conversion import CONVERTIBLE_EXTENSIONS, convert_file_to_markdown
 
 logger = logging.getLogger(__name__)
 

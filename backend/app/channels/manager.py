@@ -338,7 +338,7 @@ def _resolve_attachments(thread_id: str, artifacts: list[str]) -> list[ResolvedA
     Skips artifacts that cannot be resolved (missing files, invalid paths)
     and logs warnings for them.
     """
-    from deerflow.config.paths import get_paths
+    from kiwi.config.paths import get_paths
 
     attachments: list[ResolvedAttachment] = []
     paths = get_paths()
@@ -408,7 +408,7 @@ async def _ingest_inbound_files(thread_id: str, msg: InboundMessage) -> list[dic
     if not msg.files:
         return []
 
-    from deerflow.uploads.manager import claim_unique_filename, ensure_uploads_dir, normalize_filename
+    from kiwi.uploads.manager import claim_unique_filename, ensure_uploads_dir, normalize_filename
 
     uploads_dir = ensure_uploads_dir(thread_id)
     seen_names = {entry.name for entry in uploads_dir.iterdir() if entry.is_file()}

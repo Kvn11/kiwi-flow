@@ -21,12 +21,12 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from deerflow.config.extensions_config import (
+from kiwi.config.extensions_config import (
     ExtensionsConfig,
     LibrarySkillStateConfig,
     reload_extensions_config,
 )
-from deerflow.skill_library import LibrarySkill, load_skill_library, reset_library_registry
+from kiwi.skill_library import LibrarySkill, load_skill_library, reset_library_registry
 
 logger = logging.getLogger(__name__)
 

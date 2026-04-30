@@ -5,7 +5,7 @@ from fastapi import APIRouter
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
-from deerflow.models import create_chat_model
+from kiwi.models import create_chat_model
 
 logger = logging.getLogger(__name__)
 

@@ -4,12 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from deerflow.skill_library.registry import (
+from kiwi.skill_library.registry import (
     MAX_RESULTS,
     SkillLibraryRegistry,
     reset_library_registry,
 )
-from deerflow.skill_library.types import LibrarySkill
+from kiwi.skill_library.types import LibrarySkill
 
 
 def _make_skill(name: str, description: str) -> LibrarySkill:

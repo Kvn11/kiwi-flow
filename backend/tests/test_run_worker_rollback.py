@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, call
 
 import pytest
 
-from deerflow.runtime.runs.worker import _rollback_to_pre_run_checkpoint
+from kiwi.runtime.runs.worker import _rollback_to_pre_run_checkpoint
 
 
 class FakeCheckpointer:

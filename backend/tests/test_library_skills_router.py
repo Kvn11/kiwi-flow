@@ -9,12 +9,12 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.gateway.routers import library_skills as router_module
-from deerflow.config.extensions_config import (
+from kiwi.config.extensions_config import (
     ExtensionsConfig,
     reset_extensions_config,
     set_extensions_config,
 )
-from deerflow.skill_library.registry import reset_library_registry
+from kiwi.skill_library.registry import reset_library_registry
 
 
 def _skill_content(name: str, description: str = "Demo library skill") -> str:
@@ -45,7 +45,7 @@ def populated_library(tmp_path: Path, monkeypatch):
             container_path="/mnt/skill-library",
         )
     )
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.config.get_app_config", lambda: config)
     return library_root
 
 

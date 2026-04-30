@@ -3,13 +3,13 @@ from types import SimpleNamespace
 
 import anyio
 
-from deerflow.agents.lead_agent import prompt as prompt_module
-from deerflow.skills.types import Skill
+from kiwi.agents.lead_agent import prompt as prompt_module
+from kiwi.skills.types import Skill
 
 
 def test_build_custom_mounts_section_returns_empty_when_no_mounts(monkeypatch):
     config = SimpleNamespace(sandbox=SimpleNamespace(mounts=[]))
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.config.get_app_config", lambda: config)
 
     assert prompt_module._build_custom_mounts_section() == ""
 
@@ -20,7 +20,7 @@ def test_build_custom_mounts_section_lists_configured_mounts(monkeypatch):
         SimpleNamespace(container_path="/mnt/reference", read_only=True),
     ]
     config = SimpleNamespace(sandbox=SimpleNamespace(mounts=mounts))
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.config.get_app_config", lambda: config)
 
     section = prompt_module._build_custom_mounts_section()
 
@@ -37,7 +37,7 @@ def test_apply_prompt_template_includes_custom_mounts(monkeypatch):
         sandbox=SimpleNamespace(mounts=mounts),
         skills=SimpleNamespace(container_path="/mnt/skills"),
     )
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.config.get_app_config", lambda: config)
     monkeypatch.setattr(prompt_module, "_get_enabled_skills", lambda: [])
     monkeypatch.setattr(prompt_module, "get_deferred_tools_prompt_section", lambda: "")
     monkeypatch.setattr(prompt_module, "_build_acp_section", lambda: "")
@@ -55,7 +55,7 @@ def test_apply_prompt_template_includes_relative_path_guidance(monkeypatch):
         sandbox=SimpleNamespace(mounts=[]),
         skills=SimpleNamespace(container_path="/mnt/skills"),
     )
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.config.get_app_config", lambda: config)
     monkeypatch.setattr(prompt_module, "_get_enabled_skills", lambda: [])
     monkeypatch.setattr(prompt_module, "get_deferred_tools_prompt_section", lambda: "")
     monkeypatch.setattr(prompt_module, "_build_acp_section", lambda: "")
@@ -192,9 +192,9 @@ def _patch_library_state(monkeypatch, *, enabled: bool, registry_len: int) -> No
         skill_library=SimpleNamespace(enabled=enabled),
         skill_evolution=SimpleNamespace(enabled=False),
     )
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.config.get_app_config", lambda: config)
     monkeypatch.setattr(
-        "deerflow.skill_library.registry.get_library_registry",
+        "kiwi.skill_library.registry.get_library_registry",
         lambda: _make_registry(registry_len),
     )
 
@@ -218,7 +218,7 @@ def test_is_skill_library_active_returns_false_when_config_load_fails(monkeypatc
     def _raise():
         raise RuntimeError("config exploded")
 
-    monkeypatch.setattr("deerflow.config.get_app_config", _raise)
+    monkeypatch.setattr("kiwi.config.get_app_config", _raise)
 
     with caplog.at_level("DEBUG", logger=prompt_module.__name__):
         assert prompt_module._is_skill_library_active() is False
@@ -231,12 +231,12 @@ def test_is_skill_library_active_returns_false_when_registry_load_fails(monkeypa
     config = SimpleNamespace(
         skill_library=SimpleNamespace(enabled=True),
     )
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
+    monkeypatch.setattr("kiwi.config.get_app_config", lambda: config)
 
     def _raise():
         raise RuntimeError("registry exploded")
 
-    monkeypatch.setattr("deerflow.skill_library.registry.get_library_registry", _raise)
+    monkeypatch.setattr("kiwi.skill_library.registry.get_library_registry", _raise)
 
     with caplog.at_level("DEBUG", logger=prompt_module.__name__):
         assert prompt_module._is_skill_library_active() is False

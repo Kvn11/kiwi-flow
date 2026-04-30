@@ -17,7 +17,7 @@ config_version: 9
 # ============================================================================
 # Logging
 # ============================================================================
-# Log level for deerflow modules (debug/info/warning/error)
+# Log level for kiwi modules (debug/info/warning/error)
 log_level: info
 
 # ============================================================================
@@ -38,7 +38,7 @@ models:
   # Example: Volcengine (Doubao) model
   # - name: doubao-seed-1.8
   #   display_name: Doubao-Seed-1.8
-  #   use: deerflow.models.patched_deepseek:PatchedChatDeepSeek
+  #   use: kiwi.models.patched_deepseek:PatchedChatDeepSeek
   #   model: doubao-seed-1-8-251228
   #   api_base: https://ark.cn-beijing.volces.com/api/v3
   #   api_key: $VOLCENGINE_API_KEY
@@ -88,7 +88,7 @@ models:
   # into <think> tags or dropped entirely (ollama/ollama#15293). The native Ollama API
   # (/api/chat) correctly separates thinking from response content.
   #
-  # Install: cd backend && uv pip install 'deerflow-harness[ollama]'
+  # Install: cd backend && uv pip install 'kiwi-harness[ollama]'
   #
   # - name: qwen3-local
   #   display_name: Qwen3 32B (Ollama)
@@ -150,7 +150,7 @@ models:
   # https://docs.cloud.google.com/vertex-ai/generative-ai/docs/thought-signatures
   # - name: gemini-2.5-pro-thinking
   #   display_name: Gemini 2.5 Pro (Thinking)
-  #   use: deerflow.models.patched_openai:PatchedChatOpenAI
+  #   use: kiwi.models.patched_openai:PatchedChatOpenAI
   #   model: google/gemini-2.5-pro-preview   # model name as expected by your gateway
   #   api_key: $GEMINI_API_KEY
   #   base_url: https://<your-openai-compat-gateway>/v1
@@ -171,7 +171,7 @@ models:
   # Example: DeepSeek model (with thinking support)
   # - name: deepseek-v3
   #   display_name: DeepSeek V3 (Thinking)
-  #   use: deerflow.models.patched_deepseek:PatchedChatDeepSeek
+  #   use: kiwi.models.patched_deepseek:PatchedChatDeepSeek
   #   model: deepseek-reasoner
   #   api_key: $DEEPSEEK_API_KEY
   #   timeout: 600.0
@@ -191,7 +191,7 @@ models:
   # Example: Kimi K2.5 model
   # - name: kimi-k2.5
   #   display_name: Kimi K2.5
-  #   use: deerflow.models.patched_deepseek:PatchedChatDeepSeek
+  #   use: kiwi.models.patched_deepseek:PatchedChatDeepSeek
   #   model: kimi-k2.5
   #   api_base: https://api.moonshot.cn/v1
   #   api_key: $MOONSHOT_API_KEY
@@ -312,7 +312,7 @@ models:
   # `vllm serve ... --reasoning-parser <parser>`.
   # - name: qwen3-32b-vllm
   #   display_name: Qwen3 32B (vLLM)
-  #   use: deerflow.models.vllm_provider:VllmChatModel
+  #   use: kiwi.models.vllm_provider:VllmChatModel
   #   model: Qwen/Qwen3-32B
   #   api_key: $VLLM_API_KEY
   #   base_url: http://localhost:8000/v1
@@ -346,27 +346,27 @@ tools:
   # Web search tool (uses DuckDuckGo, no API key required)
   - name: web_search
     group: web
-    use: deerflow.community.ddg_search.tools:web_search_tool
+    use: kiwi.community.ddg_search.tools:web_search_tool
     max_results: 5
 
   # Web search tool (requires Tavily API key)
   # - name: web_search
   #   group: web
-  #   use: deerflow.community.tavily.tools:web_search_tool
+  #   use: kiwi.community.tavily.tools:web_search_tool
   #   max_results: 5
   #   # api_key: $TAVILY_API_KEY  # Set if needed
 
   # Web search tool (uses InfoQuest, requires InfoQuest API key)
   # - name: web_search
   #   group: web
-  #   use: deerflow.community.infoquest.tools:web_search_tool
+  #   use: kiwi.community.infoquest.tools:web_search_tool
   #   # Used to limit the scope of search results, only returns content within the specified time range. Set to -1 to disable time filtering
   #   search_time_range: 10
 
   # Web search tool (uses Exa, requires EXA_API_KEY)
   # - name: web_search
   #   group: web
-  #   use: deerflow.community.exa.tools:web_search_tool
+  #   use: kiwi.community.exa.tools:web_search_tool
   #   max_results: 5
   #   search_type: auto  # Options: auto, neural, keyword
   #   contents_max_characters: 1000
@@ -375,7 +375,7 @@ tools:
   # Web search tool (uses Firecrawl, requires FIRECRAWL_API_KEY)
   # - name: web_search
   #   group: web
-  #   use: deerflow.community.firecrawl.tools:web_search_tool
+  #   use: kiwi.community.firecrawl.tools:web_search_tool
   #   max_results: 5
   #   # api_key: $FIRECRAWL_API_KEY
 
@@ -384,19 +384,19 @@ tools:
   # Comment out the Jina AI web_fetch entry below before enabling this one.
   # - name: web_fetch
   #   group: web
-  #   use: deerflow.community.exa.tools:web_fetch_tool
+  #   use: kiwi.community.exa.tools:web_fetch_tool
   #   # api_key: $EXA_API_KEY
 
   # Web fetch tool (uses Jina AI reader)
   - name: web_fetch
     group: web
-    use: deerflow.community.jina_ai.tools:web_fetch_tool
+    use: kiwi.community.jina_ai.tools:web_fetch_tool
     timeout: 10
 
   # Web fetch tool (uses InfoQuest)
   # - name: web_fetch
   #   group: web
-  #   use: deerflow.community.infoquest.tools:web_fetch_tool
+  #   use: kiwi.community.infoquest.tools:web_fetch_tool
   #   # Overall timeout for the entire crawling process (in seconds). Set to positive value to enable, -1 to disable
   #   timeout: 10
   #   # Waiting time after page loading (in seconds). Set to positive value to enable, -1 to disable
@@ -407,20 +407,20 @@ tools:
   # Web fetch tool (uses Firecrawl, requires FIRECRAWL_API_KEY)
   # - name: web_fetch
   #   group: web
-  #   use: deerflow.community.firecrawl.tools:web_fetch_tool
+  #   use: kiwi.community.firecrawl.tools:web_fetch_tool
   #   # api_key: $FIRECRAWL_API_KEY
 
   # Image search tool (uses DuckDuckGo)
   # Use this to find reference images before image generation
   - name: image_search
     group: web
-    use: deerflow.community.image_search.tools:image_search_tool
+    use: kiwi.community.image_search.tools:image_search_tool
     max_results: 5
 
   # Image search tool (uses InfoQuest)
   # - name: image_search
   #   group: web
-  #   use: deerflow.community.infoquest.tools:image_search_tool
+  #   use: kiwi.community.infoquest.tools:image_search_tool
   #   # Used to limit the scope of image search results, only returns content within the specified time range. Set to -1 to disable time filtering
   #   image_search_time_range: 10
   #   # Image size filter. Options: "l" (large), "m" (medium), "i" (icon).
@@ -429,36 +429,36 @@ tools:
   # File operations tools
   - name: ls
     group: file:read
-    use: deerflow.sandbox.tools:ls_tool
+    use: kiwi.sandbox.tools:ls_tool
 
   - name: read_file
     group: file:read
-    use: deerflow.sandbox.tools:read_file_tool
+    use: kiwi.sandbox.tools:read_file_tool
 
   - name: glob
     group: file:read
-    use: deerflow.sandbox.tools:glob_tool
+    use: kiwi.sandbox.tools:glob_tool
     max_results: 200
 
   - name: grep
     group: file:read
-    use: deerflow.sandbox.tools:grep_tool
+    use: kiwi.sandbox.tools:grep_tool
     max_results: 100
 
   - name: write_file
     group: file:write
-    use: deerflow.sandbox.tools:write_file_tool
+    use: kiwi.sandbox.tools:write_file_tool
 
   - name: str_replace
     group: file:write
-    use: deerflow.sandbox.tools:str_replace_tool
+    use: kiwi.sandbox.tools:str_replace_tool
 
   # Bash execution tool
   # Active only when using an isolated shell sandbox or when
   # sandbox.allow_host_bash: true explicitly opts into host bash.
   - name: bash
     group: bash
-    use: deerflow.sandbox.tools:bash_tool
+    use: kiwi.sandbox.tools:bash_tool
 
 # ============================================================================
 # Tool Search Configuration (Deferred Tool Loading)
@@ -495,7 +495,7 @@ uploads:
   pdf_converter: auto
 
 sandbox:
-  use: deerflow.sandbox.local:LocalSandboxProvider
+  use: kiwi.sandbox.local:LocalSandboxProvider
   # Host bash execution is disabled by default because LocalSandboxProvider is
   # not a secure isolation boundary for shell access. Enable only for fully
   # trusted, single-user local workflows.
@@ -521,7 +521,7 @@ sandbox:
 # On other platforms: Uses Docker
 # Uncomment to use:
 # sandbox:
-#   use: deerflow.community.aio_sandbox:AioSandboxProvider
+#   use: kiwi.community.aio_sandbox:AioSandboxProvider
 #
 #   # Optional: Container image to use (works with both Docker and Apple Container)
 #   # Default: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
@@ -562,7 +562,7 @@ sandbox:
 # Each sandbox_id gets a dedicated Pod in k3s, managed by the provisioner.
 # Recommended for production or advanced users who want better isolation and scalability.:
 # sandbox:
-#   use: deerflow.community.aio_sandbox:AioSandboxProvider
+#   use: kiwi.community.aio_sandbox:AioSandboxProvider
 #   provisioner_url: http://provisioner:8002
 
 # ============================================================================
@@ -817,7 +817,7 @@ checkpointer:
 # PostgreSQL (multi-process, production):
 # checkpointer:
 #   type: postgres
-#   connection_string: postgresql://user:password@localhost:5432/deerflow
+#   connection_string: postgresql://user:password@localhost:5432/kiwi
 
 # ============================================================================
 # IM Channels Configuration
@@ -933,14 +933,14 @@ checkpointer:
 # guardrails:
 #   enabled: true
 #   provider:
-#     use: deerflow.guardrails.builtin:AllowlistProvider
+#     use: kiwi.guardrails.builtin:AllowlistProvider
 #     config:
 #       denied_tools: ["bash", "write_file"]
 
 # --- Option 2: OAP passport provider (open standard, any implementation) ---
 #   The Open Agent Passport (OAP) spec defines passport format and decision codes.
 #   Any OAP-compliant provider works. Example using APort (reference implementation):
-#     pip install aport-agent-guardrails && aport setup --framework deerflow
+#     pip install aport-agent-guardrails && aport setup --framework kiwi
 # guardrails:
 #   enabled: true
 #   provider:
