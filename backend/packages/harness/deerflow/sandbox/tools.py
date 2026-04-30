@@ -408,6 +408,9 @@ def _resolve_local_read_path(path: str, thread_data: ThreadDataState) -> str:
         return _resolve_library_path(path)
     if _is_acp_workspace_path(path):
         return _resolve_acp_workspace_path(path, _extract_thread_id_from_thread_data(thread_data))
+    if _is_custom_mount_path(path):
+        # LocalSandbox._resolve_path() translates custom mount container paths via path_mappings.
+        return path
     return _resolve_and_validate_user_data_path(path, thread_data)
 
 
@@ -1169,6 +1172,8 @@ def ls_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, path:
             validate_local_tool_path(path, thread_data, read_only=True)
             if _is_skills_path(path):
                 path = _resolve_skills_path(path)
+            elif _is_library_path(path):
+                path = _resolve_library_path(path)
             elif _is_acp_workspace_path(path):
                 path = _resolve_acp_workspace_path(path, _extract_thread_id_from_thread_data(thread_data))
             elif not _is_custom_mount_path(path):
@@ -1343,6 +1348,8 @@ def read_file_tool(
             validate_local_tool_path(path, thread_data, read_only=True)
             if _is_skills_path(path):
                 path = _resolve_skills_path(path)
+            elif _is_library_path(path):
+                path = _resolve_library_path(path)
             elif _is_acp_workspace_path(path):
                 path = _resolve_acp_workspace_path(path, _extract_thread_id_from_thread_data(thread_data))
             elif not _is_custom_mount_path(path):

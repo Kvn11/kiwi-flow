@@ -2,9 +2,10 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from deerflow.community.aio_sandbox.aio_sandbox import AioSandbox
-from deerflow.sandbox.local.local_sandbox import LocalSandbox
+from deerflow.config.sandbox_config import VolumeMountConfig
+from deerflow.sandbox.local.local_sandbox import LocalSandbox, PathMapping
 from deerflow.sandbox.search import GrepMatch, find_glob_matches, find_grep_matches
-from deerflow.sandbox.tools import glob_tool, grep_tool, ls_tool
+from deerflow.sandbox.tools import glob_tool, grep_tool, ls_tool, read_file_tool
 
 
 def _make_runtime(tmp_path):
@@ -459,3 +460,112 @@ def test_ls_tool_returns_empty_for_empty_directory(tmp_path, monkeypatch) -> Non
     )
 
     assert result == "(empty)"
+
+
+def test_ls_tool_supports_skill_library_virtual_paths(tmp_path, monkeypatch) -> None:
+    """ls_tool must resolve /mnt/skill-library the same way it resolves /mnt/skills."""
+    runtime = _make_runtime(tmp_path)
+    library_dir = tmp_path / "skill-library"
+    (library_dir / "specialized").mkdir(parents=True)
+    (library_dir / "specialized" / "SKILL.md").write_text("# Specialized\n", encoding="utf-8")
+
+    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
+
+    with (
+        patch("deerflow.sandbox.tools._get_library_container_path", return_value="/mnt/skill-library"),
+        patch("deerflow.sandbox.tools._get_library_host_path", return_value=str(library_dir)),
+    ):
+        result = ls_tool.func(
+            runtime=runtime,
+            description="list skill library",
+            path="/mnt/skill-library",
+        )
+
+    assert "specialized" in result
+    assert "/mnt/skill-library" in result
+    assert str(library_dir) not in result
+
+
+def test_read_file_tool_supports_skill_library_virtual_paths(tmp_path, monkeypatch) -> None:
+    """read_file_tool must resolve /mnt/skill-library the same way it resolves /mnt/skills."""
+    runtime = _make_runtime(tmp_path)
+    library_dir = tmp_path / "skill-library"
+    (library_dir / "specialized").mkdir(parents=True)
+    skill_md = library_dir / "specialized" / "SKILL.md"
+    skill_md.write_text("# Specialized\nworkflow body\n", encoding="utf-8")
+
+    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: LocalSandbox(id="local"))
+
+    with (
+        patch("deerflow.sandbox.tools._get_library_container_path", return_value="/mnt/skill-library"),
+        patch("deerflow.sandbox.tools._get_library_host_path", return_value=str(library_dir)),
+    ):
+        result = read_file_tool.func(
+            runtime=runtime,
+            description="read library skill",
+            path="/mnt/skill-library/specialized/SKILL.md",
+        )
+
+    assert "# Specialized" in result
+    assert "workflow body" in result
+    assert str(library_dir) not in result
+
+
+def _make_custom_mount_runtime(tmp_path, mount_dir):
+    """Runtime with a LocalSandbox preconfigured to translate /mnt/data to mount_dir."""
+    runtime = _make_runtime(tmp_path)
+    sandbox = LocalSandbox(
+        id="local",
+        path_mappings=[PathMapping(container_path="/mnt/data", local_path=str(mount_dir), read_only=False)],
+    )
+    return runtime, sandbox
+
+
+def _custom_mount_config(host_path):
+    return [VolumeMountConfig(host_path=str(host_path), container_path="/mnt/data", read_only=False)]
+
+
+def test_glob_tool_supports_custom_mount_paths(tmp_path, monkeypatch) -> None:
+    """glob_tool must resolve configured custom-mount paths the same way ls_tool does."""
+    mount_dir = tmp_path / "mount"
+    mount_dir.mkdir()
+    (mount_dir / "report.json").write_text("{}\n", encoding="utf-8")
+    (mount_dir / "nested").mkdir()
+    (mount_dir / "nested" / "data.json").write_text("{}\n", encoding="utf-8")
+
+    runtime, sandbox = _make_custom_mount_runtime(tmp_path, mount_dir)
+    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
+
+    with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=_custom_mount_config(mount_dir)):
+        result = glob_tool.func(
+            runtime=runtime,
+            description="find json under custom mount",
+            pattern="**/*.json",
+            path="/mnt/data",
+        )
+
+    assert "/mnt/data/report.json" in result
+    assert "/mnt/data/nested/data.json" in result
+    assert str(mount_dir) not in result
+
+
+def test_grep_tool_supports_custom_mount_paths(tmp_path, monkeypatch) -> None:
+    """grep_tool must resolve configured custom-mount paths the same way ls_tool does."""
+    mount_dir = tmp_path / "mount"
+    mount_dir.mkdir()
+    (mount_dir / "main.py").write_text("MARKER = 'found-it'\n", encoding="utf-8")
+
+    runtime, sandbox = _make_custom_mount_runtime(tmp_path, mount_dir)
+    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
+
+    with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=_custom_mount_config(mount_dir)):
+        result = grep_tool.func(
+            runtime=runtime,
+            description="search for MARKER",
+            pattern="MARKER",
+            path="/mnt/data",
+        )
+
+    assert "/mnt/data/main.py" in result
+    assert "found-it" in result
+    assert str(mount_dir) not in result
