@@ -1,11 +1,11 @@
-"""Tests for create_deerflow_agent SDK entry point."""
+"""Tests for create_kiwi_agent SDK entry point."""
 
 from typing import get_type_hints
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kiwi.agents.factory import create_deerflow_agent
+from kiwi.agents.factory import create_kiwi_agent
 from kiwi.agents.features import Next, Prev, RuntimeFeatures
 from kiwi.agents.middlewares.view_image_middleware import ViewImageMiddleware
 from kiwi.agents.thread_state import ThreadState
@@ -29,7 +29,7 @@ def test_minimal_creation(mock_create_agent):
     mock_create_agent.return_value = MagicMock(name="compiled_graph")
     model = _make_mock_model()
 
-    result = create_deerflow_agent(model)
+    result = create_kiwi_agent(model)
 
     mock_create_agent.assert_called_once()
     assert result is mock_create_agent.return_value
@@ -47,7 +47,7 @@ def test_with_tools(mock_create_agent):
     model = _make_mock_model()
     tool = _make_mock_tool("search")
 
-    create_deerflow_agent(model, tools=[tool])
+    create_kiwi_agent(model, tools=[tool])
 
     call_kwargs = mock_create_agent.call_args[1]
     tool_names = [t.name for t in call_kwargs["tools"]]
@@ -62,7 +62,7 @@ def test_with_system_prompt(mock_create_agent):
     mock_create_agent.return_value = MagicMock()
     prompt = "You are a helpful assistant."
 
-    create_deerflow_agent(_make_mock_model(), system_prompt=prompt)
+    create_kiwi_agent(_make_mock_model(), system_prompt=prompt)
 
     call_kwargs = mock_create_agent.call_args[1]
     assert call_kwargs["system_prompt"] == prompt
@@ -76,7 +76,7 @@ def test_features_mode(mock_create_agent):
     mock_create_agent.return_value = MagicMock()
     feat = RuntimeFeatures(sandbox=True, auto_title=True)
 
-    create_deerflow_agent(_make_mock_model(), features=feat)
+    create_kiwi_agent(_make_mock_model(), features=feat)
 
     call_kwargs = mock_create_agent.call_args[1]
     middleware = call_kwargs["middleware"]
@@ -97,7 +97,7 @@ def test_middleware_takeover(mock_create_agent):
     custom_mw = MagicMock(name="custom_middleware")
     custom_mw.name = "custom"
 
-    create_deerflow_agent(_make_mock_model(), middleware=[custom_mw])
+    create_kiwi_agent(_make_mock_model(), middleware=[custom_mw])
 
     call_kwargs = mock_create_agent.call_args[1]
     assert call_kwargs["middleware"] == [custom_mw]
@@ -108,7 +108,7 @@ def test_middleware_takeover(mock_create_agent):
 # ---------------------------------------------------------------------------
 def test_middleware_and_features_conflict():
     with pytest.raises(ValueError, match="Cannot specify both"):
-        create_deerflow_agent(
+        create_kiwi_agent(
             _make_mock_model(),
             middleware=[MagicMock()],
             features=RuntimeFeatures(),
@@ -123,7 +123,7 @@ def test_vision_injects_view_image_tool(mock_create_agent):
     mock_create_agent.return_value = MagicMock()
     feat = RuntimeFeatures(vision=True, sandbox=False)
 
-    create_deerflow_agent(_make_mock_model(), features=feat)
+    create_kiwi_agent(_make_mock_model(), features=feat)
 
     call_kwargs = mock_create_agent.call_args[1]
     tool_names = [t.name for t in call_kwargs["tools"]]
@@ -145,7 +145,7 @@ def test_subagent_injects_task_tool(mock_create_agent):
     mock_create_agent.return_value = MagicMock()
     feat = RuntimeFeatures(subagent=True, sandbox=False)
 
-    create_deerflow_agent(_make_mock_model(), features=feat)
+    create_kiwi_agent(_make_mock_model(), features=feat)
 
     call_kwargs = mock_create_agent.call_args[1]
     tool_names = [t.name for t in call_kwargs["tools"]]
@@ -160,7 +160,7 @@ def test_clarification_always_last(mock_create_agent):
     mock_create_agent.return_value = MagicMock()
     feat = RuntimeFeatures(sandbox=True, memory=True, vision=True)
 
-    create_deerflow_agent(_make_mock_model(), features=feat)
+    create_kiwi_agent(_make_mock_model(), features=feat)
 
     call_kwargs = mock_create_agent.call_args[1]
     middleware = call_kwargs["middleware"]
@@ -191,7 +191,7 @@ def test_tool_deduplication(mock_create_agent):
     mock_create_agent.return_value = MagicMock()
     user_clarification = _make_mock_tool("ask_clarification")
 
-    create_deerflow_agent(_make_mock_model(), tools=[user_clarification], features=RuntimeFeatures(sandbox=False))
+    create_kiwi_agent(_make_mock_model(), tools=[user_clarification], features=RuntimeFeatures(sandbox=False))
 
     call_kwargs = mock_create_agent.call_args[1]
     names = [t.name for t in call_kwargs["tools"]]
@@ -208,7 +208,7 @@ def test_sandbox_disabled(mock_create_agent):
     mock_create_agent.return_value = MagicMock()
     feat = RuntimeFeatures(sandbox=False)
 
-    create_deerflow_agent(_make_mock_model(), features=feat)
+    create_kiwi_agent(_make_mock_model(), features=feat)
 
     call_kwargs = mock_create_agent.call_args[1]
     mw_types = [type(m).__name__ for m in call_kwargs["middleware"]]
@@ -225,7 +225,7 @@ def test_checkpointer_passthrough(mock_create_agent):
     mock_create_agent.return_value = MagicMock()
     cp = MagicMock(name="checkpointer")
 
-    create_deerflow_agent(_make_mock_model(), checkpointer=cp)
+    create_kiwi_agent(_make_mock_model(), checkpointer=cp)
 
     call_kwargs = mock_create_agent.call_args[1]
     assert call_kwargs["checkpointer"] is cp
@@ -247,7 +247,7 @@ def test_custom_middleware_replaces_default(mock_create_agent):
     custom_memory = MyMemoryMiddleware()
     feat = RuntimeFeatures(sandbox=False, memory=custom_memory)
 
-    create_deerflow_agent(_make_mock_model(), features=feat)
+    create_kiwi_agent(_make_mock_model(), features=feat)
 
     call_kwargs = mock_create_agent.call_args[1]
     middleware = call_kwargs["middleware"]
@@ -273,7 +273,7 @@ def test_custom_sandbox_replaces_group(mock_create_agent):
     custom_sb = MySandbox()
     feat = RuntimeFeatures(sandbox=custom_sb)
 
-    create_deerflow_agent(_make_mock_model(), features=feat)
+    create_kiwi_agent(_make_mock_model(), features=feat)
 
     call_kwargs = mock_create_agent.call_args[1]
     middleware = call_kwargs["middleware"]
@@ -292,7 +292,7 @@ def test_always_on_error_handling(mock_create_agent):
     mock_create_agent.return_value = MagicMock()
     feat = RuntimeFeatures(sandbox=False)
 
-    create_deerflow_agent(_make_mock_model(), features=feat)
+    create_kiwi_agent(_make_mock_model(), features=feat)
 
     call_kwargs = mock_create_agent.call_args[1]
     mw_types = [type(m).__name__ for m in call_kwargs["middleware"]]
@@ -315,7 +315,7 @@ def test_vision_custom_middleware_still_injects_tool(mock_create_agent):
 
     feat = RuntimeFeatures(sandbox=False, vision=MyVision())
 
-    create_deerflow_agent(_make_mock_model(), features=feat)
+    create_kiwi_agent(_make_mock_model(), features=feat)
 
     call_kwargs = mock_create_agent.call_args[1]
     tool_names = [t.name for t in call_kwargs["tools"]]
@@ -375,7 +375,7 @@ def test_extra_next_inserts_after_anchor(mock_create_agent):
         pass
 
     audit = MyAudit()
-    create_deerflow_agent(
+    create_kiwi_agent(
         _make_mock_model(),
         features=RuntimeFeatures(sandbox=False),
         extra_middleware=[audit],
@@ -405,7 +405,7 @@ def test_extra_prev_inserts_before_anchor(mock_create_agent):
         pass
 
     filt = MyFilter()
-    create_deerflow_agent(
+    create_kiwi_agent(
         _make_mock_model(),
         features=RuntimeFeatures(sandbox=False),
         extra_middleware=[filt],
@@ -432,7 +432,7 @@ def test_extra_unanchored_before_clarification(mock_create_agent):
         pass
 
     plain = MyPlain()
-    create_deerflow_agent(
+    create_kiwi_agent(
         _make_mock_model(),
         features=RuntimeFeatures(sandbox=False),
         extra_middleware=[plain],
@@ -462,7 +462,7 @@ def test_extra_conflict_same_next_target():
         pass
 
     with pytest.raises(ValueError, match="Conflict"):
-        create_deerflow_agent(
+        create_kiwi_agent(
             _make_mock_model(),
             features=RuntimeFeatures(sandbox=False),
             extra_middleware=[MW1(), MW2()],
@@ -486,7 +486,7 @@ def test_extra_conflict_same_prev_target():
         pass
 
     with pytest.raises(ValueError, match="Conflict"):
-        create_deerflow_agent(
+        create_kiwi_agent(
             _make_mock_model(),
             features=RuntimeFeatures(sandbox=False),
             extra_middleware=[MW1(), MW2()],
@@ -509,7 +509,7 @@ def test_extra_both_next_and_prev_error():
     MW._prev_anchor = ClarificationMiddleware
 
     with pytest.raises(ValueError, match="both @Next and @Prev"):
-        create_deerflow_agent(
+        create_kiwi_agent(
             _make_mock_model(),
             features=RuntimeFeatures(sandbox=False),
             extra_middleware=[MW()],
@@ -535,7 +535,7 @@ def test_extra_cross_external_anchoring(mock_create_agent):
     class Second(AgentMiddleware):
         pass
 
-    create_deerflow_agent(
+    create_kiwi_agent(
         _make_mock_model(),
         features=RuntimeFeatures(sandbox=False),
         extra_middleware=[Second(), First()],  # intentionally reversed
@@ -565,7 +565,7 @@ def test_extra_unresolvable_anchor():
         pass
 
     with pytest.raises(ValueError, match="Cannot resolve"):
-        create_deerflow_agent(
+        create_kiwi_agent(
             _make_mock_model(),
             features=RuntimeFeatures(sandbox=False),
             extra_middleware=[MW()],
@@ -577,7 +577,7 @@ def test_extra_unresolvable_anchor():
 # ---------------------------------------------------------------------------
 def test_extra_with_middleware_takeover_conflict():
     with pytest.raises(ValueError, match="full takeover"):
-        create_deerflow_agent(
+        create_kiwi_agent(
             _make_mock_model(),
             middleware=[MagicMock()],
             extra_middleware=[MagicMock()],
@@ -595,7 +595,7 @@ def test_extra_with_middleware_takeover_conflict():
 @patch("kiwi.agents.factory.create_agent")
 def test_loop_detection_always_present(mock_create_agent):
     mock_create_agent.return_value = MagicMock()
-    create_deerflow_agent(_make_mock_model(), features=RuntimeFeatures(sandbox=False))
+    create_kiwi_agent(_make_mock_model(), features=RuntimeFeatures(sandbox=False))
 
     call_kwargs = mock_create_agent.call_args[1]
     mw_types = [type(m).__name__ for m in call_kwargs["middleware"]]
@@ -608,7 +608,7 @@ def test_loop_detection_always_present(mock_create_agent):
 @patch("kiwi.agents.factory.create_agent")
 def test_loop_detection_before_clarification(mock_create_agent):
     mock_create_agent.return_value = MagicMock()
-    create_deerflow_agent(_make_mock_model(), features=RuntimeFeatures(sandbox=False))
+    create_kiwi_agent(_make_mock_model(), features=RuntimeFeatures(sandbox=False))
 
     call_kwargs = mock_create_agent.call_args[1]
     mw_types = [type(m).__name__ for m in call_kwargs["middleware"]]
@@ -624,7 +624,7 @@ def test_loop_detection_before_clarification(mock_create_agent):
 @patch("kiwi.agents.factory.create_agent")
 def test_plan_mode_adds_todo_middleware(mock_create_agent):
     mock_create_agent.return_value = MagicMock()
-    create_deerflow_agent(_make_mock_model(), features=RuntimeFeatures(sandbox=False), plan_mode=True)
+    create_kiwi_agent(_make_mock_model(), features=RuntimeFeatures(sandbox=False), plan_mode=True)
 
     call_kwargs = mock_create_agent.call_args[1]
     mw_types = [type(m).__name__ for m in call_kwargs["middleware"]]
@@ -637,7 +637,7 @@ def test_plan_mode_adds_todo_middleware(mock_create_agent):
 @patch("kiwi.agents.factory.create_agent")
 def test_plan_mode_default_no_todo(mock_create_agent):
     mock_create_agent.return_value = MagicMock()
-    create_deerflow_agent(_make_mock_model(), features=RuntimeFeatures(sandbox=False))
+    create_kiwi_agent(_make_mock_model(), features=RuntimeFeatures(sandbox=False))
 
     call_kwargs = mock_create_agent.call_args[1]
     mw_types = [type(m).__name__ for m in call_kwargs["middleware"]]
@@ -649,7 +649,7 @@ def test_plan_mode_default_no_todo(mock_create_agent):
 # ---------------------------------------------------------------------------
 def test_summarization_true_raises():
     with pytest.raises(ValueError, match="requires a custom AgentMiddleware"):
-        create_deerflow_agent(
+        create_kiwi_agent(
             _make_mock_model(),
             features=RuntimeFeatures(sandbox=False, summarization=True),
         )
@@ -660,7 +660,7 @@ def test_summarization_true_raises():
 # ---------------------------------------------------------------------------
 def test_guardrail_true_raises():
     with pytest.raises(ValueError, match="requires a custom AgentMiddleware"):
-        create_deerflow_agent(
+        create_kiwi_agent(
             _make_mock_model(),
             features=RuntimeFeatures(sandbox=False, guardrail=True),
         )
@@ -679,7 +679,7 @@ def test_guardrail_custom_middleware(mock_create_agent):
         pass
 
     custom = MyGuardrail()
-    create_deerflow_agent(
+    create_kiwi_agent(
         _make_mock_model(),
         features=RuntimeFeatures(sandbox=False, guardrail=custom),
     )
@@ -697,7 +697,7 @@ def test_guardrail_custom_middleware(mock_create_agent):
 @patch("kiwi.agents.factory.create_agent")
 def test_guardrail_default_off(mock_create_agent):
     mock_create_agent.return_value = MagicMock()
-    create_deerflow_agent(_make_mock_model(), features=RuntimeFeatures(sandbox=False))
+    create_kiwi_agent(_make_mock_model(), features=RuntimeFeatures(sandbox=False))
 
     call_kwargs = mock_create_agent.call_args[1]
     mw_types = [type(m).__name__ for m in call_kwargs["middleware"]]
@@ -728,7 +728,7 @@ def test_full_chain_order(mock_create_agent):
         auto_title=True,
         guardrail=MyGuardrail(),
     )
-    create_deerflow_agent(_make_mock_model(), features=feat, plan_mode=True)
+    create_kiwi_agent(_make_mock_model(), features=feat, plan_mode=True)
 
     call_kwargs = mock_create_agent.call_args[1]
     mw_types = [type(m).__name__ for m in call_kwargs["middleware"]]
@@ -768,7 +768,7 @@ def test_next_clarification_preserves_tail_invariant(mock_create_agent):
     class AfterClar(AgentMiddleware):
         pass
 
-    create_deerflow_agent(
+    create_kiwi_agent(
         _make_mock_model(),
         features=RuntimeFeatures(sandbox=False),
         extra_middleware=[AfterClar()],
@@ -798,7 +798,7 @@ def test_extra_opposite_direction_same_anchor_conflict():
         pass
 
     with pytest.raises(ValueError, match="cross-anchoring"):
-        create_deerflow_agent(
+        create_kiwi_agent(
             _make_mock_model(),
             features=RuntimeFeatures(sandbox=False),
             extra_middleware=[AfterDangling(), BeforeDangling()],
@@ -837,7 +837,7 @@ def test_prev_bad_anchor_type():
 # ---------------------------------------------------------------------------
 def test_extra_middleware_bad_type():
     with pytest.raises(TypeError, match="AgentMiddleware instances"):
-        create_deerflow_agent(
+        create_kiwi_agent(
             _make_mock_model(),
             features=RuntimeFeatures(sandbox=False),
             extra_middleware=[object()],  # type: ignore[list-item]
@@ -860,7 +860,7 @@ def test_extra_circular_dependency():
     MW_B._next_anchor = MW_A  # type: ignore[attr-defined]
 
     with pytest.raises(ValueError, match="Circular dependency"):
-        create_deerflow_agent(
+        create_kiwi_agent(
             _make_mock_model(),
             features=RuntimeFeatures(sandbox=False),
             extra_middleware=[MW_A(), MW_B()],

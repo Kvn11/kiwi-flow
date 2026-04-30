@@ -275,8 +275,8 @@ _app_config: AppConfig | None = None
 _app_config_path: Path | None = None
 _app_config_mtime: float | None = None
 _app_config_is_custom = False
-_current_app_config: ContextVar[AppConfig | None] = ContextVar("deerflow_current_app_config", default=None)
-_current_app_config_stack: ContextVar[tuple[AppConfig | None, ...]] = ContextVar("deerflow_current_app_config_stack", default=())
+_current_app_config: ContextVar[AppConfig | None] = ContextVar("kiwi_current_app_config", default=None)
+_current_app_config_stack: ContextVar[tuple[AppConfig | None, ...]] = ContextVar("kiwi_current_app_config_stack", default=())
 
 
 def _get_config_mtime(config_path: Path) -> float | None:

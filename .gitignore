@@ -1,4 +1,4 @@
-# DeerFlow docker image cache
+# Kiwi docker image cache
 docker/.cache/
 # oh-my-claudecode state
 .omc/

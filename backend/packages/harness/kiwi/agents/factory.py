@@ -1,6 +1,6 @@
 """Pure-argument factory for Kiwi agents.
 
-``create_deerflow_agent`` accepts plain Python arguments — no YAML files, no
+``create_kiwi_agent`` accepts plain Python arguments — no YAML files, no
 global singletons.  It is the SDK-level entry point sitting between the raw
 ``langchain.agents.create_agent`` primitive and the config-driven
 ``make_lead_agent`` application factory.
@@ -58,7 +58,7 @@ _TODO_TOOL_DESCRIPTION = "Use this tool to create and manage a structured task l
 # ---------------------------------------------------------------------------
 
 
-def create_deerflow_agent(
+def create_kiwi_agent(
     model: BaseChatModel,
     tools: list[BaseTool] | None = None,
     *,

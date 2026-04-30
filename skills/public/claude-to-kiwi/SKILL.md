@@ -1,6 +1,6 @@
 ---
 name: claude-to-kiwi
-description: "Interact with Kiwi AI agent platform via its HTTP API. Use this skill when the user wants to send messages or questions to Kiwi for research/analysis, start a Kiwi conversation thread, check Kiwi status or health, list available models/skills/agents in Kiwi, manage Kiwi memory, upload files to Kiwi threads, or delegate complex research tasks to Kiwi. Also use when the user mentions kiwi, deer flow, or wants to run a deep research task that Kiwi can handle."
+description: "Interact with Kiwi AI agent platform via its HTTP API. Use this skill when the user wants to send messages or questions to Kiwi for research/analysis, start a Kiwi conversation thread, check Kiwi status or health, list available models/skills/agents in Kiwi, manage Kiwi memory, upload files to Kiwi threads, or delegate complex research tasks to Kiwi. Also use when the user mentions kiwi or wants to run a deep research task that Kiwi can handle."
 ---
 
 # Kiwi Skill
