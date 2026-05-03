@@ -58,6 +58,43 @@ class TestProviders:
         free = [provider for provider in WEB_FETCH_PROVIDERS if provider.env_var is None]
         assert free, "Expected at least one free (no-key) web fetch provider"
 
+    def test_openai_provider_emits_reasoning_blocks(self):
+        """OpenAI reasoning models must default to Responses API + thinking/effort toggles."""
+        openai = next(p for p in LLM_PROVIDERS if p.name == "openai")
+        cfg = openai.effective_extra_config("gpt-5.5")
+        assert cfg["use_responses_api"] is True
+        assert cfg["output_version"] == "responses/v1"
+        assert cfg["supports_thinking"] is True
+        assert cfg["supports_reasoning_effort"] is True
+        assert cfg["when_thinking_enabled"] == {"reasoning_effort": "medium"}
+        # Disabled state must not use 'minimal' — gpt-5.4 family rejects it
+        assert cfg["when_thinking_disabled"] == {"reasoning_effort": "low"}
+
+    def test_openai_pro_model_overrides_to_high_effort(self):
+        """gpt-5.5-pro deep-merges to high effort while leaving the base config intact."""
+        openai = next(p for p in LLM_PROVIDERS if p.name == "openai")
+        pro = openai.effective_extra_config("gpt-5.5-pro")
+        plain = openai.effective_extra_config("gpt-5.5")
+        assert pro["when_thinking_enabled"] == {"reasoning_effort": "high"}
+        assert pro["when_thinking_disabled"] == {"reasoning_effort": "low"}
+        # Override must not mutate the base config for sibling models
+        assert plain["when_thinking_enabled"] == {"reasoning_effort": "medium"}
+        # Other base fields (use_responses_api, etc.) survive the merge
+        assert pro["use_responses_api"] is True
+        assert pro["supports_reasoning_effort"] is True
+
+    def test_anthropic_provider_emits_native_thinking_blocks(self):
+        """Anthropic models must use the native `thinking` constructor param, not extra_body."""
+        anthropic = next(p for p in LLM_PROVIDERS if p.name == "anthropic")
+        cfg = anthropic.effective_extra_config("claude-sonnet-4-6")
+        assert cfg["supports_thinking"] is True
+        assert cfg["when_thinking_enabled"] == {
+            "thinking": {"type": "enabled", "budget_tokens": 8192},
+        }
+        assert cfg["when_thinking_disabled"] == {"thinking": {"type": "disabled"}}
+        assert cfg["max_retries"] == 2
+        assert cfg["default_request_timeout"] == 600.0
+
 
 class TestBuildMinimalConfig:
     def test_produces_valid_yaml(self):

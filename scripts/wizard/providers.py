@@ -19,7 +19,24 @@ class LLMProvider:
     api_key_field: str = "api_key"
     # Extra config fields beyond the common ones (merged into YAML)
     extra_config: dict = field(default_factory=dict)
+    # Per-model overrides deep-merged on top of extra_config when that model is selected
+    model_overrides: dict[str, dict] = field(default_factory=dict)
     auth_hint: str | None = None
+
+    def effective_extra_config(self, model_name: str) -> dict:
+        """Return extra_config deep-merged with any per-model overrides."""
+        return _deep_merge(self.extra_config, self.model_overrides.get(model_name, {}))
+
+
+def _deep_merge(base: dict, override: dict) -> dict:
+    """Recursively merge override into base without mutating either input."""
+    result = {k: (dict(v) if isinstance(v, dict) else v) for k, v in base.items()}
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(result.get(key), dict):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = value
+    return result
 
 
 @dataclass
@@ -48,59 +65,113 @@ LLM_PROVIDERS: list[LLMProvider] = [
     LLMProvider(
         name="openai",
         display_name="OpenAI",
-        description="GPT-4o, GPT-4.1, o3",
+        description="GPT-5.5 / GPT-5.4 / o3 / o4-mini (reasoning)",
         use="langchain_openai:ChatOpenAI",
-        models=["gpt-4o", "gpt-4.1", "o3"],
-        default_model="gpt-4o",
+        models=["gpt-5.5", "gpt-5.5-pro", "gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano", "o3", "o4-mini"],
+        default_model="gpt-5.5",
         env_var="OPENAI_API_KEY",
         package="langchain-openai",
+        extra_config={
+            "request_timeout": 600.0,
+            "max_retries": 2,
+            "max_tokens": 16384,
+            "use_responses_api": True,
+            "output_version": "responses/v1",
+            "supports_thinking": True,
+            "supports_reasoning_effort": True,
+            "supports_vision": True,
+            "when_thinking_enabled": {"reasoning_effort": "medium"},
+            "when_thinking_disabled": {"reasoning_effort": "low"},
+        },
+        # gpt-5.5-pro defaults to "high" effort when thinking is enabled
+        model_overrides={
+            "gpt-5.5-pro": {
+                "when_thinking_enabled": {"reasoning_effort": "high"},
+            },
+        },
     ),
     LLMProvider(
         name="anthropic",
         display_name="Anthropic",
-        description="Claude Opus 4, Sonnet 4",
+        description="Claude Opus 4.7 / Sonnet 4.6 / Haiku 4.5 (extended thinking)",
         use="langchain_anthropic:ChatAnthropic",
-        models=["claude-opus-4-5", "claude-sonnet-4-5"],
-        default_model="claude-sonnet-4-5",
+        models=["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"],
+        default_model="claude-sonnet-4-6",
         env_var="ANTHROPIC_API_KEY",
         package="langchain-anthropic",
-        extra_config={"max_tokens": 8192},
+        extra_config={
+            "default_request_timeout": 600.0,
+            "max_retries": 2,
+            "max_tokens": 16384,
+            "supports_thinking": True,
+            "supports_vision": True,
+            "when_thinking_enabled": {
+                "thinking": {"type": "enabled", "budget_tokens": 8192},
+            },
+            "when_thinking_disabled": {
+                "thinking": {"type": "disabled"},
+            },
+        },
     ),
     LLMProvider(
         name="deepseek",
         display_name="DeepSeek",
-        description="V3, R1",
-        use="langchain_deepseek:ChatDeepSeek",
-        models=["deepseek-chat", "deepseek-reasoner"],
-        default_model="deepseek-chat",
+        description="V4 / V4-flash (thinking mode supported)",
+        use="kiwi.models.patched_deepseek:PatchedChatDeepSeek",
+        models=["deepseek-v4", "deepseek-v4-pro", "deepseek-v4-flash", "deepseek-reasoner", "deepseek-chat"],
+        default_model="deepseek-v4",
         env_var="DEEPSEEK_API_KEY",
         package="langchain-deepseek",
+        extra_config={
+            "max_tokens": 8192,
+            "supports_thinking": True,
+            "when_thinking_enabled": {
+                "extra_body": {"thinking": {"type": "enabled"}},
+            },
+            "when_thinking_disabled": {
+                "extra_body": {"thinking": {"type": "disabled"}},
+            },
+        },
     ),
     LLMProvider(
         name="google",
         display_name="Google Gemini",
-        description="2.0 Flash, 2.5 Pro",
+        description="Gemini 3.1 Pro / 3 Flash (Deep Think)",
         use="langchain_google_genai:ChatGoogleGenerativeAI",
-        models=["gemini-2.0-flash", "gemini-2.5-pro"],
-        default_model="gemini-2.0-flash",
+        models=["gemini-3.1-pro", "gemini-3-pro", "gemini-3-flash"],
+        default_model="gemini-3.1-pro",
         env_var="GEMINI_API_KEY",
         package="langchain-google-genai",
         api_key_field="gemini_api_key",
+        extra_config={
+            "timeout": 600.0,
+            "max_retries": 2,
+            "max_tokens": 16384,
+            "supports_vision": True,
+        },
     ),
     LLMProvider(
         name="openrouter",
         display_name="OpenRouter",
         description="OpenAI-compatible gateway with broad model catalog",
         use="langchain_openai:ChatOpenAI",
-        models=["google/gemini-2.5-flash-preview", "openai/gpt-5-mini", "anthropic/claude-sonnet-4"],
-        default_model="google/gemini-2.5-flash-preview",
+        models=[
+            "anthropic/claude-opus-4-7",
+            "anthropic/claude-sonnet-4-6",
+            "openai/gpt-5.5",
+            "openai/gpt-5.4",
+            "google/gemini-3.1-pro",
+            "google/gemini-3-flash",
+            "deepseek/deepseek-v4",
+        ],
+        default_model="anthropic/claude-sonnet-4-6",
         env_var="OPENROUTER_API_KEY",
         package="langchain-openai",
         extra_config={
             "base_url": "https://openrouter.ai/api/v1",
             "request_timeout": 600.0,
             "max_retries": 2,
-            "max_tokens": 8192,
+            "max_tokens": 16384,
             "temperature": 0.7,
         },
     ),
@@ -109,7 +180,12 @@ LLM_PROVIDERS: list[LLMProvider] = [
         display_name="vLLM",
         description="Self-hosted OpenAI-compatible serving",
         use="kiwi.models.vllm_provider:VllmChatModel",
-        models=["Qwen/Qwen3-32B", "Qwen/Qwen2.5-Coder-32B-Instruct"],
+        models=[
+            "Qwen/Qwen3-235B-A22B-Thinking",
+            "Qwen/Qwen3-32B",
+            "Qwen/Qwen3-Coder-32B-Instruct",
+            "deepseek-ai/DeepSeek-V4",
+        ],
         default_model="Qwen/Qwen3-32B",
         env_var="VLLM_API_KEY",
         package=None,
@@ -134,8 +210,8 @@ LLM_PROVIDERS: list[LLMProvider] = [
         display_name="Codex CLI",
         description="Uses Codex CLI local auth (~/.codex/auth.json)",
         use="kiwi.models.openai_codex_provider:CodexChatModel",
-        models=["gpt-5.4", "gpt-5-mini"],
-        default_model="gpt-5.4",
+        models=["gpt-5.5", "gpt-5.4", "gpt-5.4-mini"],
+        default_model="gpt-5.5",
         env_var=None,
         package=None,
         api_key_field="api_key",
@@ -147,11 +223,11 @@ LLM_PROVIDERS: list[LLMProvider] = [
         display_name="Claude Code OAuth",
         description="Uses Claude Code local OAuth credentials",
         use="kiwi.models.claude_provider:ClaudeChatModel",
-        models=["claude-sonnet-4-6", "claude-opus-4-1"],
+        models=["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"],
         default_model="claude-sonnet-4-6",
         env_var=None,
         package=None,
-        extra_config={"max_tokens": 4096, "supports_thinking": True},
+        extra_config={"max_tokens": 16384, "supports_thinking": True},
         auth_hint="Uses Claude Code OAuth credentials from your local machine",
     ),
     LLMProvider(
@@ -159,8 +235,8 @@ LLM_PROVIDERS: list[LLMProvider] = [
         display_name="Other OpenAI-compatible",
         description="Custom gateway with base_url and model name",
         use="langchain_openai:ChatOpenAI",
-        models=["gpt-4o"],
-        default_model="gpt-4o",
+        models=["gpt-5.5"],
+        default_model="gpt-5.5",
         env_var="OPENAI_API_KEY",
         package="langchain-openai",
     ),
