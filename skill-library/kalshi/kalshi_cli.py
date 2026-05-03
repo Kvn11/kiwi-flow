@@ -352,10 +352,10 @@ def match_series(series: list[dict], query: str) -> list[dict]:
     out = []
     for s in series:
         haystack_parts = [
-            s.get("title", ""),
-            s.get("ticker", ""),
-            s.get("category", ""),
-            *s.get("tags", []),
+            s.get("title") or "",
+            s.get("ticker") or "",
+            s.get("category") or "",
+            *(s.get("tags") or []),
         ]
         haystack = " ".join(haystack_parts).lower()
         if all(t in haystack for t in tokens):
