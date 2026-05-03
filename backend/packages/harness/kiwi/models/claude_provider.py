@@ -34,6 +34,12 @@ logger = logging.getLogger(__name__)
 MAX_RETRIES = 3
 THINKING_BUDGET_RATIO = 0.8
 
+# Block types Anthropic forbids cache_control on.
+NON_CACHEABLE_BLOCK_TYPES = frozenset({"thinking", "redacted_thinking"})
+
+# Anthropic Messages API rejects requests with more than 4 cache_control markers.
+MAX_CACHE_BREAKPOINTS = 4
+
 # Billing header required by Anthropic API for OAuth token access.
 # Must be the first system prompt block. Format mirrors Claude Code CLI.
 # Override with ANTHROPIC_BILLING_HEADER env var if the hardcoded version drifts.
@@ -190,47 +196,63 @@ class ClaudeChatModel(ChatAnthropic):
             )
 
     def _apply_prompt_caching(self, payload: dict) -> None:
-        """Apply ephemeral cache_control to system and recent messages."""
-        # Cache system messages
-        system = payload.get("system")
-        if system and isinstance(system, list):
-            for block in system:
-                if isinstance(block, dict) and block.get("type") == "text":
-                    block["cache_control"] = {"type": "ephemeral"}
-        elif system and isinstance(system, str):
-            payload["system"] = [
-                {
-                    "type": "text",
-                    "text": system,
-                    "cache_control": {"type": "ephemeral"},
-                }
-            ]
+        """Place ephemeral cache_control breakpoints within Anthropic's 4-marker budget.
 
-        # Cache recent messages
-        messages = payload.get("messages", [])
-        cache_start = max(0, len(messages) - self.prompt_cache_size)
+        Strategy: each breakpoint marks the end of a cacheable prefix, so place them
+        at the highest-value boundaries — end of system prompt, end of tool defs,
+        and end of the most recent N messages — capped at MAX_CACHE_BREAKPOINTS total.
+        """
+        budget = MAX_CACHE_BREAKPOINTS
+
+        # Normalize a string system prompt into a list so we can attach a marker.
+        system = payload.get("system")
+        if isinstance(system, str) and system:
+            payload["system"] = [{"type": "text", "text": system}]
+            system = payload["system"]
+
+        # System: one breakpoint on the LAST text block.
+        if isinstance(system, list) and budget > 0:
+            last_text = next(
+                (b for b in reversed(system) if isinstance(b, dict) and b.get("type") == "text"),
+                None,
+            )
+            if last_text is not None:
+                last_text["cache_control"] = {"type": "ephemeral"}
+                budget -= 1
+
+        # Tools: one breakpoint on the last tool definition.
+        tools = payload.get("tools") or []
+        if tools and isinstance(tools[-1], dict) and budget > 0:
+            tools[-1]["cache_control"] = {"type": "ephemeral"}
+            budget -= 1
+
+        # Messages: one breakpoint on the last cacheable block of each of the
+        # most recent N messages, where N = min(prompt_cache_size, remaining budget).
+        messages = payload.get("messages") or []
+        n = min(self.prompt_cache_size, budget)
+        if n <= 0 or not messages:
+            return
+        cache_start = max(0, len(messages) - n)
         for i in range(cache_start, len(messages)):
+            if budget <= 0:
+                break
             msg = messages[i]
             if not isinstance(msg, dict):
                 continue
             content = msg.get("content")
-            if isinstance(content, list):
-                for block in content:
-                    if isinstance(block, dict):
-                        block["cache_control"] = {"type": "ephemeral"}
-            elif isinstance(content, str) and content:
-                msg["content"] = [
-                    {
-                        "type": "text",
-                        "text": content,
-                        "cache_control": {"type": "ephemeral"},
-                    }
-                ]
-
-        # Cache the last tool definition
-        tools = payload.get("tools", [])
-        if tools and isinstance(tools[-1], dict):
-            tools[-1]["cache_control"] = {"type": "ephemeral"}
+            if isinstance(content, str) and content:
+                msg["content"] = [{"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}]
+                budget -= 1
+                continue
+            if not isinstance(content, list):
+                continue
+            last_cacheable = next(
+                (b for b in reversed(content) if isinstance(b, dict) and b.get("type") not in NON_CACHEABLE_BLOCK_TYPES),
+                None,
+            )
+            if last_cacheable is not None:
+                last_cacheable["cache_control"] = {"type": "ephemeral"}
+                budget -= 1
 
     def _apply_thinking_budget(self, payload: dict) -> None:
         """Auto-allocate thinking budget (80% of max_tokens)."""

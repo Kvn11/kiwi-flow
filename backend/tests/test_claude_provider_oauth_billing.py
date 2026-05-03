@@ -11,12 +11,20 @@ from kiwi.models.claude_provider import OAUTH_BILLING_HEADER, ClaudeChatModel
 
 def _make_model() -> ClaudeChatModel:
     """Return a minimal ClaudeChatModel instance in OAuth mode without network calls."""
-    import unittest.mock as mock
-
     with mock.patch.object(ClaudeChatModel, "model_post_init"):
         m = ClaudeChatModel(model="claude-sonnet-4-6", anthropic_api_key="sk-ant-oat-fake-token")  # type: ignore[call-arg]
     m._is_oauth = True
     m._oauth_access_token = "sk-ant-oat-fake-token"
+    return m
+
+
+def _make_caching_model() -> ClaudeChatModel:
+    """Return a minimal ClaudeChatModel in API-key mode with prompt caching enabled."""
+    with mock.patch.object(ClaudeChatModel, "model_post_init"):
+        m = ClaudeChatModel(model="claude-sonnet-4-6", anthropic_api_key="sk-ant-api-fake")  # type: ignore[call-arg]
+    m._is_oauth = False
+    m.enable_prompt_caching = True
+    m.prompt_cache_size = 3
     return m
 
 
@@ -27,6 +35,26 @@ def model() -> ClaudeChatModel:
 
 def _billing_block() -> dict:
     return {"type": "text", "text": OAUTH_BILLING_HEADER}
+
+
+def _count_cache_breakpoints(payload: dict) -> int:
+    """Count cache_control markers across system, tools, and message content blocks."""
+    n = 0
+    for block in payload.get("system") or []:
+        if isinstance(block, dict) and "cache_control" in block:
+            n += 1
+    for tool in payload.get("tools") or []:
+        if isinstance(tool, dict) and "cache_control" in tool:
+            n += 1
+    for msg in payload.get("messages") or []:
+        if not isinstance(msg, dict):
+            continue
+        content = msg.get("content")
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and "cache_control" in block:
+                    n += 1
+    return n
 
 
 # ---------------------------------------------------------------------------
@@ -131,6 +159,161 @@ def test_sync_create_strips_cache_control_from_oauth_payload(model):
     assert "cache_control" not in sent_payload["system"][0]
     assert "cache_control" not in sent_payload["messages"][0]["content"][0]
     assert "cache_control" not in sent_payload["tools"][0]
+
+
+def test_apply_prompt_caching_skips_thinking_blocks():
+    """Reproduces the API 400 from Telegram/Kalshi: cache_control must NOT be
+    attached to `thinking` or `redacted_thinking` blocks — Anthropic rejects them.
+    """
+    m = _make_caching_model()
+    payload = {
+        "messages": [
+            {"role": "user", "content": [{"type": "text", "text": "hi"}]},
+            {
+                "role": "assistant",
+                "content": [
+                    {"type": "thinking", "thinking": "let me think...", "signature": "sig"},
+                    {"type": "text", "text": "hello!"},
+                ],
+            },
+            {"role": "user", "content": [{"type": "text", "text": "what's my cash?"}]},
+        ]
+    }
+
+    m._apply_prompt_caching(payload)
+
+    thinking_block = payload["messages"][1]["content"][0]
+    text_block = payload["messages"][1]["content"][1]
+    assert thinking_block["type"] == "thinking"
+    assert "cache_control" not in thinking_block, "cache_control on thinking block is rejected by Anthropic API"
+    assert text_block.get("cache_control") == {"type": "ephemeral"}
+
+
+def test_apply_prompt_caching_skips_redacted_thinking_blocks():
+    m = _make_caching_model()
+    payload = {
+        "messages": [
+            {
+                "role": "assistant",
+                "content": [
+                    {"type": "redacted_thinking", "data": "encrypted-blob"},
+                    {"type": "text", "text": "ok"},
+                ],
+            },
+        ]
+    }
+
+    m._apply_prompt_caching(payload)
+
+    redacted_block = payload["messages"][0]["content"][0]
+    text_block = payload["messages"][0]["content"][1]
+    assert "cache_control" not in redacted_block
+    assert text_block.get("cache_control") == {"type": "ephemeral"}, "skip must be surgical: sibling text block still gets cache_control"
+
+
+def test_apply_prompt_caching_respects_4_breakpoint_limit():
+    """Anthropic API rejects requests with more than 4 cache_control markers.
+    A heavy but realistic agent payload (multi-block system + tools + multi-block
+    messages) must never exceed the limit.
+    """
+    m = _make_caching_model()
+    payload = {
+        "system": [
+            {"type": "text", "text": "system part 1"},
+            {"type": "text", "text": "system part 2"},
+        ],
+        "tools": [
+            {"name": "tool1", "input_schema": {"type": "object"}},
+            {"name": "tool2", "input_schema": {"type": "object"}},
+        ],
+        "messages": [
+            {"role": "user", "content": [{"type": "text", "text": "msg0"}]},
+            {
+                "role": "assistant",
+                "content": [
+                    {"type": "thinking", "thinking": "...", "signature": "sig"},
+                    {"type": "text", "text": "reply 1"},
+                    {"type": "tool_use", "id": "tu1", "name": "tool1", "input": {}},
+                ],
+            },
+            {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "tu1", "content": "result"}]},
+            {"role": "assistant", "content": [{"type": "text", "text": "reply 2"}]},
+            {"role": "user", "content": [{"type": "text", "text": "what's my cash?"}]},
+        ],
+    }
+
+    m._apply_prompt_caching(payload)
+
+    total = _count_cache_breakpoints(payload)
+    assert total <= 4, f"expected ≤4 cache_control breakpoints, got {total}"
+
+
+def test_apply_prompt_caching_places_breakpoints_at_useful_boundaries():
+    """Breakpoints should land at the end of the system prompt, the last tool def,
+    and the last cacheable block of the most recent messages — not be sprayed
+    across every block."""
+    m = _make_caching_model()
+    m.prompt_cache_size = 2  # leaves budget for 2 message breakpoints
+    payload = {
+        "system": [
+            {"type": "text", "text": "first system block"},
+            {"type": "text", "text": "last system block"},
+        ],
+        "tools": [
+            {"name": "tool1", "input_schema": {"type": "object"}},
+            {"name": "tool2", "input_schema": {"type": "object"}},
+        ],
+        "messages": [
+            {"role": "user", "content": [{"type": "text", "text": "old"}]},
+            {"role": "assistant", "content": [{"type": "text", "text": "older reply"}]},
+            {"role": "user", "content": [{"type": "text", "text": "recent"}]},
+            {
+                "role": "assistant",
+                "content": [
+                    {"type": "thinking", "thinking": "...", "signature": "sig"},
+                    {"type": "text", "text": "most recent reply"},
+                ],
+            },
+        ],
+    }
+
+    m._apply_prompt_caching(payload)
+
+    # System: only the LAST text block carries the marker.
+    assert "cache_control" not in payload["system"][0]
+    assert payload["system"][1].get("cache_control") == {"type": "ephemeral"}
+    # Tools: only the last tool def.
+    assert "cache_control" not in payload["tools"][0]
+    assert payload["tools"][1].get("cache_control") == {"type": "ephemeral"}
+    # Messages: only the last 2 are marked. Older ones untouched.
+    assert "cache_control" not in payload["messages"][0]["content"][0]
+    assert "cache_control" not in payload["messages"][1]["content"][0]
+    assert payload["messages"][2]["content"][0].get("cache_control") == {"type": "ephemeral"}
+    # Last message: thinking skipped, text gets the marker.
+    assert "cache_control" not in payload["messages"][3]["content"][0]
+    assert payload["messages"][3]["content"][1].get("cache_control") == {"type": "ephemeral"}
+    # Total ≤ 4.
+    assert _count_cache_breakpoints(payload) == 4
+
+
+def test_apply_prompt_caching_handles_message_with_only_thinking_block():
+    """If a message has no cacheable blocks (all thinking), no breakpoint is placed."""
+    m = _make_caching_model()
+    payload = {
+        "messages": [
+            {
+                "role": "assistant",
+                "content": [
+                    {"type": "thinking", "thinking": "...", "signature": "sig"},
+                ],
+            },
+        ]
+    }
+
+    m._apply_prompt_caching(payload)
+
+    assert "cache_control" not in payload["messages"][0]["content"][0]
+    assert _count_cache_breakpoints(payload) == 0
 
 
 def test_async_create_strips_cache_control_from_oauth_payload(model):
