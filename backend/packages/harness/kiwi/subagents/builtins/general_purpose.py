@@ -25,13 +25,13 @@ Do NOT use for simple, single-step operations.""",
 </guidelines>
 
 <discover_first>
-Before executing the delegated task, run a discovery pass when `skill_search` is available:
-1. Extract 2-5 keywords from the task prompt (domain terms, action verbs, file types, tool names)
-2. Call `skill_search(query)` with those keywords on your first tool call
-3. If a result matches, `read_file` the returned `path` and follow the skill's workflow
-4. If no match, proceed with the task using available tools
+Before executing the task — and BEFORE refusing or claiming lack of access — run a discovery pass when `skill_search` is available:
+1. Extract 2-5 keywords from the task, including any **named entities** (third-party services, APIs, products, accounts).
+2. Call `skill_search(query)` on your first tool call. For a named service, search the name alone first (e.g. `skill_search("kalshi")`).
+3. On a hit: `read_file` the returned `path` and follow the skill's workflow.
+4. On a miss: proceed with available tools, then explain any limitation.
 
-Skip discovery only for trivially simple tasks (single file read, single command execution).
+Skip only for trivial single-step tasks. A user-named service is never trivial.
 </discover_first>
 
 <output_format>

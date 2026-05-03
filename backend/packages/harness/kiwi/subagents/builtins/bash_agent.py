@@ -26,13 +26,13 @@ Do NOT use for simple single commands - use bash tool directly instead.""",
 </guidelines>
 
 <discover_first>
-Before running commands, run a discovery pass when `skill_search` is available:
-1. Extract 2-5 keywords from the task prompt (e.g. "git bisect", "ffmpeg convert", "docker compose deploy")
-2. Call `skill_search(query)` with those keywords on your first tool call
-3. If a result matches, `read_file` the returned `path` and follow the skill's command sequence
-4. If no match, proceed with the commands using your own judgment
+Before running commands — and BEFORE claiming a tool/CLI is unavailable — run a discovery pass when `skill_search` is available:
+1. Extract 2-5 keywords from the task, including any named tools or CLIs (e.g. "git bisect", "ffmpeg convert", "docker compose deploy").
+2. Call `skill_search(query)` on your first tool call. For a named tool, search the name alone first.
+3. On a hit: `read_file` the returned `path` and follow the skill's command sequence.
+4. On a miss: proceed using your own judgment, then explain any limitation.
 
-Skip discovery only for trivial single-command tasks where the right invocation is obvious.
+Skip only for trivial single-command tasks where the invocation is obvious. A user-named tool is never trivial.
 </discover_first>
 
 <output_format>
