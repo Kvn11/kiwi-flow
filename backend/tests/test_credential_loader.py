@@ -85,6 +85,10 @@ def test_load_claude_code_credential_from_override_path(tmp_path, monkeypatch):
 
 def test_load_claude_code_credential_ignores_directory_path(tmp_path, monkeypatch):
     _clear_claude_code_env(monkeypatch)
+    # Point HOME at an empty tmpdir so the loader's default-path fallback
+    # (~/.claude/.credentials.json) can't pick up a real credential on the
+    # developer's machine.
+    monkeypatch.setenv("HOME", str(tmp_path))
     cred_dir = tmp_path / "claude-creds-dir"
     cred_dir.mkdir()
     monkeypatch.setenv("CLAUDE_CODE_CREDENTIALS_PATH", str(cred_dir))

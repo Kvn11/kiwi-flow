@@ -19,6 +19,7 @@ from langchain_core.runnables import RunnableConfig
 from kiwi.agents.thread_state import SandboxState, ThreadDataState, ThreadState
 from kiwi.models import create_chat_model
 from kiwi.subagents.config import SubagentConfig
+from kiwi.utils.async_cleanup import aclose_model_async_client
 
 logger = logging.getLogger(__name__)
 
@@ -166,10 +167,24 @@ class SubagentExecutor:
 
         logger.info(f"[trace={self.trace_id}] SubagentExecutor initialized: {config.name} with {len(self.tools)} tools")
 
-    def _create_agent(self):
-        """Create the agent instance."""
+    def _create_model(self):
+        """Create the chat model the subagent will use.
+
+        Split out from _create_agent so _aexecute can hold a reference and
+        close the model's async HTTP client before its event loop tears down.
+        """
         model_name = _get_model_name(self.config, self.parent_model)
-        model = create_chat_model(name=model_name, thinking_enabled=False)
+        return create_chat_model(name=model_name, thinking_enabled=False)
+
+    def _create_agent(self, model: Any = None):
+        """Create the agent instance.
+
+        ``model`` is optional for backward compatibility with tests that call
+        or mock _create_agent without a model argument; production callers in
+        _aexecute always pass an explicit model.
+        """
+        if model is None:
+            model = self._create_model()
 
         from kiwi.agents.middlewares.tool_error_handling_middleware import build_subagent_runtime_middlewares
 
@@ -293,8 +308,9 @@ class SubagentExecutor:
                 started_at=datetime.now(),
             )
 
+        model = self._create_model()
         try:
-            agent = self._create_agent()
+            agent = self._create_agent(model)
             state = await self._build_initial_state(task)
 
             # Build config with thread_id for sandbox access and recursion limit
@@ -439,6 +455,8 @@ class SubagentExecutor:
             result.status = SubagentStatus.FAILED
             result.error = str(e)
             result.completed_at = datetime.now()
+        finally:
+            await aclose_model_async_client(model)
 
         return result
 

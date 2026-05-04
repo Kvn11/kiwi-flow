@@ -932,3 +932,98 @@ class TestFinalizeCacheIsolation:
         # original_memory must not have been mutated — deepcopy isolates the mutation
         assert len(original_memory["facts"]) == 1, "original_memory must not be mutated by _apply_updates"
         assert original_memory["facts"][0]["content"] == "original"
+
+
+class TestAupdateMemoryClosesAsyncClient:
+    """aupdate_memory must close the model's async HTTP client before returning.
+
+    When invoked via ``_SYNC_MEMORY_UPDATER_EXECUTOR.submit(asyncio.run, coro)``,
+    asyncio.run closes the worker's event loop on exit. Any httpx.AsyncClient
+    connections still held by the model's pool are then bound to a closed loop
+    and crash with ``RuntimeError: Event loop is closed`` during stream cleanup
+    on subsequent calls (observed in logs/langgraph.log at 2026-05-04T00:39:00).
+    """
+
+    def test_async_client_aclose_is_awaited_after_invoke(self) -> None:
+        aclose_calls: list[bool] = []
+
+        async def fake_aclose() -> None:
+            aclose_calls.append(True)
+
+        fake_client = MagicMock()
+        fake_client.aclose = fake_aclose
+
+        fake_response = MagicMock()
+        fake_response.content = "{}"
+
+        fake_model = MagicMock()
+        fake_model.ainvoke = AsyncMock(return_value=fake_response)
+        fake_model.async_client = fake_client
+
+        updater = MemoryUpdater()
+
+        with (
+            patch.object(updater, "_get_model", return_value=fake_model),
+            patch.object(updater, "_prepare_update_prompt", return_value=({}, "prompt")),
+            patch.object(updater, "_finalize_update", return_value=True),
+        ):
+            ok = asyncio.run(updater.aupdate_memory([MagicMock()]))
+
+        assert ok is True
+        assert aclose_calls == [True]
+
+    def test_async_client_aclose_is_awaited_even_on_invoke_failure(self) -> None:
+        aclose_calls: list[bool] = []
+
+        async def fake_aclose() -> None:
+            aclose_calls.append(True)
+
+        fake_client = MagicMock()
+        fake_client.aclose = fake_aclose
+
+        fake_model = MagicMock()
+        fake_model.ainvoke = AsyncMock(side_effect=RuntimeError("boom"))
+        fake_model.async_client = fake_client
+
+        updater = MemoryUpdater()
+
+        with (
+            patch.object(updater, "_get_model", return_value=fake_model),
+            patch.object(updater, "_prepare_update_prompt", return_value=({}, "prompt")),
+        ):
+            ok = asyncio.run(updater.aupdate_memory([MagicMock()]))
+
+        assert ok is False
+        assert aclose_calls == [True]
+
+    def test_async_client_aclose_runs_before_asyncio_run_loop_closes(self) -> None:
+        """The whole point: aclose must run while the loop is still alive.
+
+        Closing after asyncio.run's loop has shut down is exactly what poisons
+        future callers — defeats the fix.
+        """
+        loop_alive_at_aclose: list[bool] = []
+
+        async def fake_aclose() -> None:
+            loop = asyncio.get_running_loop()
+            loop_alive_at_aclose.append(not loop.is_closed())
+
+        fake_client = MagicMock()
+        fake_client.aclose = fake_aclose
+
+        fake_response = MagicMock()
+        fake_response.content = "{}"
+        fake_model = MagicMock()
+        fake_model.ainvoke = AsyncMock(return_value=fake_response)
+        fake_model.async_client = fake_client
+
+        updater = MemoryUpdater()
+
+        with (
+            patch.object(updater, "_get_model", return_value=fake_model),
+            patch.object(updater, "_prepare_update_prompt", return_value=({}, "prompt")),
+            patch.object(updater, "_finalize_update", return_value=True),
+        ):
+            asyncio.run(updater.aupdate_memory([MagicMock()]))
+
+        assert loop_alive_at_aclose == [True]

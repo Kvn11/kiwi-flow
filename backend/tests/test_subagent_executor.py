@@ -358,6 +358,84 @@ class TestAsyncExecutionPath:
         assert result.status == SubagentStatus.COMPLETED
         assert "Task" in result.result
 
+    @pytest.mark.anyio
+    async def test_aexecute_closes_model_async_client(self, classes, base_config, mock_agent, msg):
+        """Subagent must close the model's async HTTP client before _aexecute returns.
+
+        execute() runs _aexecute via ``asyncio.run`` on a worker thread, and
+        _execute_in_isolated_loop runs it on a fresh loop that is then closed.
+        Either way, the loop is gone after the run. If the model's httpx pool
+        still holds connections, their asyncio Transports are bound to the dead
+        loop and crash the next caller in stream cleanup.
+        """
+        SubagentExecutor = classes["SubagentExecutor"]
+        SubagentStatus = classes["SubagentStatus"]
+
+        aclose_calls: list[bool] = []
+
+        async def fake_aclose() -> None:
+            aclose_calls.append(True)
+
+        fake_client = MagicMock()
+        fake_client.aclose = fake_aclose
+        fake_model = MagicMock()
+        fake_model.async_client = fake_client
+
+        final_state = {"messages": [msg.human("Task"), msg.ai("Done", "msg-1")]}
+        mock_agent.astream = lambda *args, **kwargs: async_iterator([final_state])
+
+        executor = SubagentExecutor(
+            config=base_config,
+            tools=[],
+            thread_id="test-thread",
+        )
+
+        with (
+            patch.object(executor, "_create_model", return_value=fake_model),
+            patch.object(executor, "_create_agent", return_value=mock_agent),
+        ):
+            result = await executor._aexecute("Task")
+
+        assert result.status == SubagentStatus.COMPLETED
+        assert aclose_calls == [True]
+
+    def test_execute_closes_model_before_asyncio_run_loop_closes(self, classes, base_config, mock_agent, msg):
+        """The whole point: aclose must run while the loop is still alive.
+
+        Closing after asyncio.run's loop has shut down is exactly what poisons
+        future callers — defeats the fix. Tests via execute() (sync entry
+        point) which uses asyncio.run internally.
+        """
+        SubagentExecutor = classes["SubagentExecutor"]
+
+        loop_alive_at_aclose: list[bool] = []
+
+        async def fake_aclose() -> None:
+            loop = asyncio.get_running_loop()
+            loop_alive_at_aclose.append(not loop.is_closed())
+
+        fake_client = MagicMock()
+        fake_client.aclose = fake_aclose
+        fake_model = MagicMock()
+        fake_model.async_client = fake_client
+
+        final_state = {"messages": [msg.human("Task"), msg.ai("Done", "msg-1")]}
+        mock_agent.astream = lambda *args, **kwargs: async_iterator([final_state])
+
+        executor = SubagentExecutor(
+            config=base_config,
+            tools=[],
+            thread_id="test-thread",
+        )
+
+        with (
+            patch.object(executor, "_create_model", return_value=fake_model),
+            patch.object(executor, "_create_agent", return_value=mock_agent),
+        ):
+            executor.execute("Task")
+
+        assert loop_alive_at_aclose == [True]
+
 
 # -----------------------------------------------------------------------------
 # Sync Execution Path Tests

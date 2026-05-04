@@ -164,7 +164,7 @@ Lead-agent middlewares are assembled in strict append order across `packages/har
 2. **UploadsMiddleware** - Tracks and injects newly uploaded files into conversation
 3. **SandboxMiddleware** - Acquires sandbox, stores `sandbox_id` in state
 4. **DanglingToolCallMiddleware** - Injects placeholder ToolMessages for AIMessage tool_calls that lack responses (e.g., due to user interruption), including raw provider tool-call payloads preserved only in `additional_kwargs["tool_calls"]`
-5. **LLMErrorHandlingMiddleware** - Normalizes provider/model invocation failures into recoverable assistant-facing errors before later middleware/tool stages run
+5. **LLMErrorHandlingMiddleware** - Normalizes provider/model invocation failures into recoverable assistant-facing errors before later middleware/tool stages run; retriable classes include transient httpx errors (`ReadError`, `RemoteProtocolError`), 5xx-style status codes, busy-pattern messages, and `RuntimeError("Event loop is closed")` from stale httpx pool entries
 6. **GuardrailMiddleware** - Pre-tool-call authorization via pluggable `GuardrailProvider` protocol (optional, if `guardrails.enabled` in config). Evaluates each tool call and returns error ToolMessage on deny. Three provider options: built-in `AllowlistProvider` (zero deps), OAP policy providers (e.g. `aport-agent-guardrails`), or custom providers. See [docs/GUARDRAILS.md](docs/GUARDRAILS.md) for setup, usage, and how to implement a provider.
 7. **SandboxAuditMiddleware** - Audits sandboxed shell/file operations for security logging before tool execution continues
 8. **ToolErrorHandlingMiddleware** - Converts tool exceptions into error `ToolMessage`s so the run can continue instead of aborting
@@ -255,6 +255,7 @@ Proxied through nginx: `/api/langgraph/*` → LangGraph, all other `/api/*` → 
 **Concurrency**: `MAX_CONCURRENT_SUBAGENTS = 3` enforced by `SubagentLimitMiddleware` (truncates excess tool calls in `after_model`), 15-minute timeout
 **Flow**: `task()` tool → `SubagentExecutor` → background thread → poll 5s → SSE events → result
 **Events**: `task_started`, `task_running`, `task_completed`/`task_failed`/`task_timed_out`
+**Loop hygiene**: `_aexecute` closes the model's async HTTP client (via `kiwi.utils.async_cleanup.aclose_model_async_client`) before its `asyncio.run` / isolated loop tears down. Without this, idle httpx connections stay bound to the dead loop and crash subsequent callers with `RuntimeError: Event loop is closed`.
 
 ### Tool System (`packages/harness/kiwi/tools/`)
 
@@ -364,7 +365,7 @@ Bridges external messaging platforms (Feishu, Slack, Telegram) to the Kiwi agent
 ### Memory System (`packages/harness/kiwi/agents/memory/`)
 
 **Components**:
-- `updater.py` - LLM-based memory updates with fact extraction, whitespace-normalized fact deduplication (trims leading/trailing whitespace before comparing), and atomic file I/O
+- `updater.py` - LLM-based memory updates with fact extraction, whitespace-normalized fact deduplication (trims leading/trailing whitespace before comparing), and atomic file I/O. `aupdate_memory` closes the model's async HTTP client (via `kiwi.utils.async_cleanup.aclose_model_async_client`) before returning, since the surrounding `_SYNC_MEMORY_UPDATER_EXECUTOR` runs the coroutine in a worker thread's `asyncio.run` whose loop is closed on exit.
 - `queue.py` - Debounced update queue (per-thread deduplication, configurable wait time)
 - `prompt.py` - Prompt templates for memory updates
 

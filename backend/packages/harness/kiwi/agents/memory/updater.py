@@ -23,6 +23,7 @@ from kiwi.agents.memory.storage import (
 )
 from kiwi.config.memory_config import get_memory_config
 from kiwi.models import create_chat_model
+from kiwi.utils.async_cleanup import aclose_model_async_client
 
 logger = logging.getLogger(__name__)
 
@@ -409,14 +410,17 @@ class MemoryUpdater:
 
             current_memory, prompt = prepared
             model = self._get_model()
-            response = await model.ainvoke(prompt, config={"run_name": "memory_agent"})
-            return await asyncio.to_thread(
-                self._finalize_update,
-                current_memory=current_memory,
-                response_content=response.content,
-                thread_id=thread_id,
-                agent_name=agent_name,
-            )
+            try:
+                response = await model.ainvoke(prompt, config={"run_name": "memory_agent"})
+                return await asyncio.to_thread(
+                    self._finalize_update,
+                    current_memory=current_memory,
+                    response_content=response.content,
+                    thread_id=thread_id,
+                    agent_name=agent_name,
+                )
+            finally:
+                await aclose_model_async_client(model)
         except json.JSONDecodeError as e:
             logger.warning("Failed to parse LLM response for memory update: %s", e)
             return False

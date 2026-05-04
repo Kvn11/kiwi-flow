@@ -164,6 +164,12 @@ class LLMErrorHandlingMiddleware(AgentMiddleware[AgentState]):
             "RemoteProtocolError",  # httpx: server closed connection unexpectedly
         }:
             return True, "transient"
+        # Stale httpx pool entry whose asyncio Transport is bound to a closed
+        # loop (e.g. a prior memory-updater asyncio.run completed and closed
+        # its loop while leaving connections in the shared pool). The next
+        # request opens a fresh connection, so a single retry recovers.
+        if isinstance(exc, RuntimeError) and "event loop is closed" in lowered:
+            return True, "transient"
         if status_code in _RETRIABLE_STATUS_CODES:
             return True, "transient"
         if _matches_any(lowered, _BUSY_PATTERNS):
