@@ -280,7 +280,7 @@ class TestLoopDetection:
         mw._apply(_make_state(tool_calls=call), runtime_new)
 
         assert "thread-0" not in mw._history
-        assert "thread-0" not in mw._tool_freq
+        assert "thread-0" not in mw._tool_history
         assert "thread-0" not in mw._tool_freq_warned
         assert "thread-new" in mw._history
         assert len(mw._history) == 3
@@ -454,64 +454,82 @@ class TestHardStopWithListContent:
 
 
 class TestToolFrequencyDetection:
-    """Tests for per-tool-type frequency detection (Layer 2).
+    """Tests for sliding-window frequency detection with diversity gating (Layer 2).
 
-    This catches the case where an agent calls the same tool type many times
-    with *different* arguments (e.g. read_file on 40 different files), which
-    bypasses hash-based detection.
+    Layer 2 catches "same tool, slightly varied args" loops that hash-based
+    detection (Layer 1) misses. Diversity gating prevents firing on legitimate
+    breadth-first work like reading 30 distinct files.
     """
 
-    def _read_call(self, path):
-        return {"name": "read_file", "id": f"call_read_{path}", "args": {"path": path}}
+    def _read_call(self, path, tc_id=None):
+        return {
+            "name": "read_file",
+            "id": tc_id or f"call_read_{path}",
+            "args": {"path": path},
+        }
 
-    def test_below_freq_warn_returns_none(self):
-        mw = LoopDetectionMiddleware(tool_freq_warn=5, tool_freq_hard_limit=10)
+    def test_distinct_reads_do_not_warn(self):
+        """30 reads of 30 distinct files = research, not a loop. The original false-positive."""
+        mw = LoopDetectionMiddleware(
+            warn_threshold=99,
+            hard_limit=99,
+            tool_freq_warn=10,
+            tool_freq_hard_limit=20,
+            tool_freq_window=30,
+        )
         runtime = _make_runtime()
 
-        for i in range(4):
-            result = mw._apply(_make_state(tool_calls=[self._read_call(f"/file_{i}.py")]), runtime)
+        for i in range(30):
+            result = mw._apply(
+                _make_state(tool_calls=[self._read_call(f"/distinct_{i}.py", tc_id=f"call_{i}")]),
+                runtime,
+            )
+            # Diversity ratio = 1.0 ≥ 0.5 floor → never fires.
+            assert result is None, f"unexpected warn at iter {i}: {result}"
+
+    def test_low_diversity_warn_at_threshold(self):
+        """30 calls with only 2 distinct keys (ratio 0.067) → warn fires."""
+        mw = LoopDetectionMiddleware(
+            warn_threshold=99,
+            hard_limit=99,
+            tool_freq_warn=10,
+            tool_freq_hard_limit=99,
+            tool_freq_window=30,
+        )
+        runtime = _make_runtime()
+
+        # 9 calls alternating between 2 paths → count=9 < 10, no warn yet
+        for i in range(9):
+            path = "/a.py" if i % 2 == 0 else "/b.py"
+            result = mw._apply(_make_state(tool_calls=[self._read_call(path, tc_id=f"c{i}")]), runtime)
             assert result is None
 
-    def test_freq_warn_at_threshold(self):
-        mw = LoopDetectionMiddleware(tool_freq_warn=5, tool_freq_hard_limit=10)
-        runtime = _make_runtime()
-
-        for i in range(4):
-            mw._apply(_make_state(tool_calls=[self._read_call(f"/file_{i}.py")]), runtime)
-
-        # 5th call to read_file (different file each time) triggers freq warning
-        result = mw._apply(_make_state(tool_calls=[self._read_call("/file_4.py")]), runtime)
+        # 10th call → count=10, distinct=2, ratio=0.2 < 0.5 → warn
+        result = mw._apply(_make_state(tool_calls=[self._read_call("/a.py", tc_id="c9")]), runtime)
         assert result is not None
         msg = result["messages"][0]
         assert isinstance(msg, HumanMessage)
         assert "read_file" in msg.content
         assert "LOOP DETECTED" in msg.content
 
-    def test_freq_warn_only_injected_once(self):
-        mw = LoopDetectionMiddleware(tool_freq_warn=3, tool_freq_hard_limit=10)
+    def test_low_diversity_hard_stop_at_limit(self):
+        """When low-diversity calls hit the hard limit, force stop."""
+        mw = LoopDetectionMiddleware(
+            warn_threshold=99,
+            hard_limit=99,
+            tool_freq_warn=5,
+            tool_freq_hard_limit=10,
+            tool_freq_window=20,
+        )
         runtime = _make_runtime()
 
-        for i in range(2):
-            mw._apply(_make_state(tool_calls=[self._read_call(f"/file_{i}.py")]), runtime)
+        # First 9 of 10 alternating paths — ratio=0.222, triggers warn
+        for i in range(9):
+            path = "/a.py" if i % 2 == 0 else "/b.py"
+            mw._apply(_make_state(tool_calls=[self._read_call(path, tc_id=f"c{i}")]), runtime)
 
-        # 3rd triggers warning
-        result = mw._apply(_make_state(tool_calls=[self._read_call("/file_2.py")]), runtime)
-        assert result is not None
-        assert "LOOP DETECTED" in result["messages"][0].content
-
-        # 4th should not re-warn (already warned for read_file)
-        result = mw._apply(_make_state(tool_calls=[self._read_call("/file_3.py")]), runtime)
-        assert result is None
-
-    def test_freq_hard_stop_at_limit(self):
-        mw = LoopDetectionMiddleware(tool_freq_warn=3, tool_freq_hard_limit=6)
-        runtime = _make_runtime()
-
-        for i in range(5):
-            mw._apply(_make_state(tool_calls=[self._read_call(f"/file_{i}.py")]), runtime)
-
-        # 6th call triggers hard stop
-        result = mw._apply(_make_state(tool_calls=[self._read_call("/file_5.py")]), runtime)
+        # 10th call → count=10, distinct=2, ratio=0.2, hits hard limit
+        result = mw._apply(_make_state(tool_calls=[self._read_call("/a.py", tc_id="c9")]), runtime)
         assert result is not None
         msg = result["messages"][0]
         assert isinstance(msg, AIMessage)
@@ -519,102 +537,150 @@ class TestToolFrequencyDetection:
         assert "FORCED STOP" in msg.content
         assert "read_file" in msg.content
 
-    def test_different_tools_tracked_independently(self):
-        """read_file and bash should have independent frequency counters."""
-        mw = LoopDetectionMiddleware(tool_freq_warn=3, tool_freq_hard_limit=10)
+    def test_warn_only_injected_once(self):
+        mw = LoopDetectionMiddleware(
+            warn_threshold=99,
+            hard_limit=99,
+            tool_freq_warn=5,
+            tool_freq_hard_limit=99,
+            tool_freq_window=30,
+        )
         runtime = _make_runtime()
 
-        # 2 read_file calls
-        for i in range(2):
-            mw._apply(_make_state(tool_calls=[self._read_call(f"/file_{i}.py")]), runtime)
+        # Build up 5 calls with low diversity → warn fires
+        for i in range(4):
+            mw._apply(
+                _make_state(tool_calls=[self._read_call("/a.py", tc_id=f"c{i}")]),
+                runtime,
+            )
+        result = mw._apply(_make_state(tool_calls=[self._read_call("/a.py", tc_id="c4")]), runtime)
+        assert result is not None
+        assert "LOOP DETECTED" in result["messages"][0].content
 
-        # 2 bash calls — should not trigger (bash count = 2, read_file count = 2)
-        for i in range(2):
+        # Subsequent low-diversity call should not re-warn for read_file
+        result = mw._apply(_make_state(tool_calls=[self._read_call("/a.py", tc_id="c5")]), runtime)
+        assert result is None
+
+    def test_sliding_window_drops_stale_entries(self):
+        """Old calls fall out of the window; counter does not accumulate forever."""
+        mw = LoopDetectionMiddleware(
+            warn_threshold=99,
+            hard_limit=99,
+            tool_freq_warn=5,
+            tool_freq_hard_limit=99,
+            tool_freq_window=10,
+        )
+        runtime = _make_runtime()
+
+        # Fill window with 10 distinct read_file calls. count=10 but ratio=1.0 → no warn.
+        for i in range(10):
+            mw._apply(
+                _make_state(tool_calls=[self._read_call(f"/distinct_{i}.py", tc_id=f"d{i}")]),
+                runtime,
+            )
+
+        # Now 5 alternating low-diversity calls. They displace older distinct ones.
+        # After 5: window = [5 displaced distinct + 5 alternating] → 5+2=7 distinct, count=10, ratio=0.7
+        # Still above floor 0.5 → no warn.
+        for i in range(5):
+            path = "/a.py" if i % 2 == 0 else "/b.py"
+            result = mw._apply(_make_state(tool_calls=[self._read_call(path, tc_id=f"a{i}")]), runtime)
+            assert result is None
+
+        # 5 more low-diversity calls: window now fully alternating /a /b → distinct=2, count=10, ratio=0.2 → warn
+        triggered = False
+        for i in range(5):
+            path = "/a.py" if i % 2 == 0 else "/b.py"
+            result = mw._apply(_make_state(tool_calls=[self._read_call(path, tc_id=f"b{i}")]), runtime)
+            if result is not None:
+                triggered = True
+                assert "LOOP DETECTED" in result["messages"][0].content
+                break
+        assert triggered, "expected warn to fire as window shifted to low-diversity content"
+
+    def test_different_tools_tracked_independently(self):
+        """read_file and bash diversity is computed per tool name."""
+        mw = LoopDetectionMiddleware(
+            warn_threshold=99,
+            hard_limit=99,
+            tool_freq_warn=5,
+            tool_freq_hard_limit=99,
+            tool_freq_window=30,
+        )
+        runtime = _make_runtime()
+
+        # 4 distinct bash calls — never trigger.
+        for i in range(4):
             result = mw._apply(_make_state(tool_calls=[_bash_call(f"cmd_{i}")]), runtime)
             assert result is None
 
-        # 3rd read_file triggers (read_file count = 3)
-        result = mw._apply(_make_state(tool_calls=[self._read_call("/file_2.py")]), runtime)
+        # 5 low-diversity read_file calls — read_file triggers, bash unaffected.
+        for i in range(4):
+            mw._apply(
+                _make_state(tool_calls=[self._read_call("/a.py", tc_id=f"r{i}")]),
+                runtime,
+            )
+        result = mw._apply(_make_state(tool_calls=[self._read_call("/a.py", tc_id="r4")]), runtime)
         assert result is not None
         assert "read_file" in result["messages"][0].content
 
-    def test_freq_reset_clears_state(self):
-        mw = LoopDetectionMiddleware(tool_freq_warn=3, tool_freq_hard_limit=10)
+    def test_reset_clears_state(self):
+        mw = LoopDetectionMiddleware(
+            warn_threshold=99,
+            hard_limit=99,
+            tool_freq_warn=3,
+            tool_freq_hard_limit=99,
+            tool_freq_window=10,
+        )
         runtime = _make_runtime()
 
         for i in range(2):
-            mw._apply(_make_state(tool_calls=[self._read_call(f"/file_{i}.py")]), runtime)
-
+            mw._apply(
+                _make_state(tool_calls=[self._read_call("/a.py", tc_id=f"c{i}")]),
+                runtime,
+            )
         mw.reset()
 
-        # After reset, count restarts — should not trigger
-        result = mw._apply(_make_state(tool_calls=[self._read_call("/file_new.py")]), runtime)
+        result = mw._apply(_make_state(tool_calls=[self._read_call("/a.py", tc_id="c2")]), runtime)
         assert result is None
 
-    def test_freq_reset_per_thread_clears_only_target(self):
-        """reset(thread_id=...) should clear frequency state for that thread only."""
-        mw = LoopDetectionMiddleware(tool_freq_warn=3, tool_freq_hard_limit=10)
+    def test_per_thread_isolation(self):
+        mw = LoopDetectionMiddleware(
+            warn_threshold=99,
+            hard_limit=99,
+            tool_freq_warn=3,
+            tool_freq_hard_limit=99,
+            tool_freq_window=10,
+        )
         runtime_a = _make_runtime("thread-A")
         runtime_b = _make_runtime("thread-B")
 
-        # 2 calls on each thread
+        # 2 low-diversity calls on each thread
         for i in range(2):
-            mw._apply(_make_state(tool_calls=[self._read_call(f"/a_{i}.py")]), runtime_a)
-            mw._apply(_make_state(tool_calls=[self._read_call(f"/b_{i}.py")]), runtime_b)
+            mw._apply(
+                _make_state(tool_calls=[self._read_call("/a.py", tc_id=f"a{i}")]),
+                runtime_a,
+            )
+            mw._apply(
+                _make_state(tool_calls=[self._read_call("/b.py", tc_id=f"b{i}")]),
+                runtime_b,
+            )
 
-        # Reset only thread-A
-        mw.reset(thread_id="thread-A")
-
-        assert "thread-A" not in mw._tool_freq
-        assert "thread-A" not in mw._tool_freq_warned
-
-        # thread-B state should still be intact — 3rd call triggers warn
-        result = mw._apply(_make_state(tool_calls=[self._read_call("/b_2.py")]), runtime_b)
+        # 3rd low-diversity call on thread A triggers warn (thread-A's window only).
+        result = mw._apply(_make_state(tool_calls=[self._read_call("/a.py", tc_id="a2")]), runtime_a)
         assert result is not None
-        assert "LOOP DETECTED" in result["messages"][0].content
 
-        # thread-A restarted from 0 — should not trigger
-        result = mw._apply(_make_state(tool_calls=[self._read_call("/a_new.py")]), runtime_a)
-        assert result is None
+    def test_constructor_rejects_window_smaller_than_warn(self):
+        import pytest
 
-    def test_freq_per_thread_isolation(self):
-        """Frequency counts should be independent per thread."""
-        mw = LoopDetectionMiddleware(tool_freq_warn=3, tool_freq_hard_limit=10)
-        runtime_a = _make_runtime("thread-A")
-        runtime_b = _make_runtime("thread-B")
+        with pytest.raises(ValueError, match="tool_freq_window"):
+            LoopDetectionMiddleware(tool_freq_warn=30, tool_freq_window=10)
 
-        # 2 calls on thread A
-        for i in range(2):
-            mw._apply(_make_state(tool_calls=[self._read_call(f"/file_{i}.py")]), runtime_a)
+    def test_constructor_rejects_invalid_diversity_floor(self):
+        import pytest
 
-        # 2 calls on thread B — should NOT push thread A over threshold
-        for i in range(2):
-            mw._apply(_make_state(tool_calls=[self._read_call(f"/other_{i}.py")]), runtime_b)
-
-        # 3rd call on thread A — triggers (count=3 for thread A only)
-        result = mw._apply(_make_state(tool_calls=[self._read_call("/file_2.py")]), runtime_a)
-        assert result is not None
-        assert "LOOP DETECTED" in result["messages"][0].content
-
-    def test_multi_tool_single_response_counted(self):
-        """When a single response has multiple tool calls, each is counted."""
-        mw = LoopDetectionMiddleware(tool_freq_warn=5, tool_freq_hard_limit=10)
-        runtime = _make_runtime()
-
-        # Response 1: 2 read_file calls → count = 2
-        call = [self._read_call("/a.py"), self._read_call("/b.py")]
-        result = mw._apply(_make_state(tool_calls=call), runtime)
-        assert result is None
-
-        # Response 2: 2 more → count = 4
-        call = [self._read_call("/c.py"), self._read_call("/d.py")]
-        result = mw._apply(_make_state(tool_calls=call), runtime)
-        assert result is None
-
-        # Response 3: 1 more → count = 5 → triggers warn
-        result = mw._apply(_make_state(tool_calls=[self._read_call("/e.py")]), runtime)
-        assert result is not None
-        assert "read_file" in result["messages"][0].content
+        with pytest.raises(ValueError, match="tool_freq_diversity_floor"):
+            LoopDetectionMiddleware(tool_freq_diversity_floor=1.5)
 
     def test_hash_detection_takes_priority(self):
         """Hash-based hard stop fires before frequency check for identical calls."""
@@ -623,6 +689,7 @@ class TestToolFrequencyDetection:
             hard_limit=3,
             tool_freq_warn=100,
             tool_freq_hard_limit=200,
+            tool_freq_window=200,
         )
         runtime = _make_runtime()
         call = [self._read_call("/same_file.py")]

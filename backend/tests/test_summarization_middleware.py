@@ -507,3 +507,80 @@ def test_memory_flush_hook_preserves_agent_scoped_memory(monkeypatch: pytest.Mon
 
     queue.add_nowait.assert_called_once()
     assert queue.add_nowait.call_args.kwargs["agent_name"] == "research-agent"
+
+
+def _tc(name: str, tc_id: str) -> dict:
+    return {"name": name, "id": tc_id, "args": {}}
+
+
+class TestFindSafeCutoffPoint:
+    """Cutoff must never split an AIMessage(tool_calls) from its ToolMessages."""
+
+    def test_cutoff_on_humanmessage_between_ai_and_toolmsgs_is_walked_back(self) -> None:
+        mw = _middleware()
+        messages = [
+            HumanMessage(content="user-1"),
+            AIMessage(content="", tool_calls=[_tc("bash", "call_1")]),
+            HumanMessage(content="[loop warning]"),  # injected by LoopDetection
+            ToolMessage(content="ok", tool_call_id="call_1"),
+            AIMessage(content="done"),
+        ]
+
+        # Naive cutoff lands on the injected HumanMessage at index 2.
+        adjusted = mw._find_safe_cutoff_point(messages, 2)
+
+        # Must be walked back to include the AIMessage at index 1.
+        assert adjusted == 1
+
+    def test_cutoff_already_safe_is_unchanged(self) -> None:
+        mw = _middleware()
+        messages = [
+            HumanMessage(content="user-1"),
+            AIMessage(content="answer"),
+            HumanMessage(content="user-2"),
+            AIMessage(content="answer-2"),
+        ]
+        assert mw._find_safe_cutoff_point(messages, 2) == 2
+
+    def test_cutoff_on_toolmessage_uses_parent_logic(self) -> None:
+        mw = _middleware()
+        messages = [
+            HumanMessage(content="user-1"),
+            AIMessage(content="", tool_calls=[_tc("bash", "call_1")]),
+            ToolMessage(content="ok", tool_call_id="call_1"),
+            AIMessage(content="done"),
+        ]
+        # Cutoff on ToolMessage — parent logic walks back to its AIMessage.
+        assert mw._find_safe_cutoff_point(messages, 2) == 1
+
+    def test_no_orphan_toolmsgs_in_preserved(self) -> None:
+        mw = _middleware()
+        messages = [
+            HumanMessage(content="user-1"),
+            AIMessage(content="", tool_calls=[_tc("bash", "call_1")]),
+            HumanMessage(content="[loop warning]"),
+            ToolMessage(content="ok", tool_call_id="call_1"),
+            AIMessage(content="done"),
+        ]
+        cutoff = mw._find_safe_cutoff_point(messages, 2)
+        preserved = messages[cutoff:]
+        # Every ToolMessage must have its AIMessage in the preserved slice.
+        ai_ids: set[str] = set()
+        for m in preserved:
+            if isinstance(m, AIMessage) and m.tool_calls:
+                ai_ids.update(tc["id"] for tc in m.tool_calls)
+        for m in preserved:
+            if isinstance(m, ToolMessage):
+                assert m.tool_call_id in ai_ids
+
+    def test_multi_humanmessage_intervention_walks_back_through_all(self) -> None:
+        mw = _middleware()
+        messages = [
+            AIMessage(content="", tool_calls=[_tc("bash", "call_1")]),
+            HumanMessage(content="warn-1"),
+            HumanMessage(content="warn-2"),
+            ToolMessage(content="ok", tool_call_id="call_1"),
+            AIMessage(content="done"),
+        ]
+        # Cutoff on the second injected HumanMessage.
+        assert mw._find_safe_cutoff_point(messages, 2) == 0

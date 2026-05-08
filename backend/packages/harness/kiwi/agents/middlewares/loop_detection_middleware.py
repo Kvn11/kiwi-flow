@@ -16,7 +16,7 @@ import hashlib
 import json
 import logging
 import threading
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict, deque
 from copy import deepcopy
 from typing import override
 
@@ -32,8 +32,10 @@ _DEFAULT_WARN_THRESHOLD = 3  # inject warning after 3 identical calls
 _DEFAULT_HARD_LIMIT = 5  # force-stop after 5 identical calls
 _DEFAULT_WINDOW_SIZE = 20  # track last N tool calls
 _DEFAULT_MAX_TRACKED_THREADS = 100  # LRU eviction limit
-_DEFAULT_TOOL_FREQ_WARN = 30  # warn after 30 calls to the same tool type
-_DEFAULT_TOOL_FREQ_HARD_LIMIT = 50  # force-stop after 50 calls to the same tool type
+_DEFAULT_TOOL_FREQ_WARN = 30  # warn after 30 same-name calls within window
+_DEFAULT_TOOL_FREQ_HARD_LIMIT = 50  # force-stop after 50 same-name calls within window
+_DEFAULT_TOOL_FREQ_WINDOW = 80  # sliding window of recent tool calls per thread
+_DEFAULT_TOOL_FREQ_DIVERSITY_FLOOR = 0.5  # if distinct/count >= floor, treat as research, not loop
 
 
 def _normalize_tool_call_args(raw_args: object) -> tuple[dict, str | None]:
@@ -105,25 +107,26 @@ def _stable_tool_key(name: str, args: dict, fallback_key: str | None) -> str:
     return json.dumps(args, sort_keys=True, default=str)
 
 
-def _hash_tool_calls(tool_calls: list[dict]) -> str:
-    """Deterministic hash of a set of tool calls (name + stable key).
-
-    This is intended to be order-independent: the same multiset of tool calls
-    should always produce the same hash, regardless of their input order.
-    """
-    # Normalize each tool call to a stable (name, key) structure.
-    normalized: list[str] = []
+def _typed_tool_calls(tool_calls: list[dict]) -> list[tuple[str, str]]:
+    """Normalize raw tool calls to ``(name, stable_key)`` tuples."""
+    typed: list[tuple[str, str]] = []
     for tc in tool_calls:
         name = tc.get("name", "")
         args, fallback_key = _normalize_tool_call_args(tc.get("args", {}))
-        key = _stable_tool_key(name, args, fallback_key)
+        typed.append((name, _stable_tool_key(name, args, fallback_key)))
+    return typed
 
-        normalized.append(f"{name}:{key}")
 
-    # Sort so permutations of the same multiset of calls yield the same ordering.
-    normalized.sort()
+def _hash_typed_calls(typed: list[tuple[str, str]]) -> str:
+    """Order-independent hash of a multiset of ``(name, key)`` tuples."""
+    normalized = sorted(f"{name}:{key}" for name, key in typed)
     blob = json.dumps(normalized, sort_keys=True, default=str)
     return hashlib.md5(blob.encode()).hexdigest()[:12]
+
+
+def _hash_tool_calls(tool_calls: list[dict]) -> str:
+    """Deterministic hash of a multiset of tool calls (order-independent)."""
+    return _hash_typed_calls(_typed_tool_calls(tool_calls))
 
 
 _WARNING_MSG = "[LOOP DETECTED] You are repeating the same tool calls. Stop calling tools and produce your final answer now. If you cannot complete the task, summarize what you accomplished so far."
@@ -140,6 +143,15 @@ _TOOL_FREQ_HARD_STOP_MSG = "[FORCED STOP] Tool {tool_name} called {count} times 
 class LoopDetectionMiddleware(AgentMiddleware[AgentState]):
     """Detects and breaks repetitive tool call loops.
 
+    Two layers of detection:
+
+    1. **Hash-based** — identical tool call *sets* repeat in a sliding window
+       of recent assistant turns.
+    2. **Frequency-based** — same tool *name* appears many times in a sliding
+       window of recent calls, AND those calls have low argument diversity
+       (so genuine breadth-first research over many distinct files isn't
+       flagged as a loop).
+
     Args:
         warn_threshold: Number of identical tool call sets before injecting
             a warning message. Default: 3.
@@ -149,12 +161,17 @@ class LoopDetectionMiddleware(AgentMiddleware[AgentState]):
             Default: 20.
         max_tracked_threads: Maximum number of threads to track before
             evicting the least recently used. Default: 100.
-        tool_freq_warn: Number of calls to the same tool *type* (regardless
-            of arguments) before injecting a frequency warning. Catches
-            cross-file read loops that hash-based detection misses.
-            Default: 30.
-        tool_freq_hard_limit: Number of calls to the same tool type before
-            forcing a stop. Default: 50.
+        tool_freq_warn: Number of same-name calls within the frequency window
+            before injecting a frequency warning. Default: 30.
+        tool_freq_hard_limit: Number of same-name calls within the window
+            before forcing a stop. Default: 50.
+        tool_freq_window: Sliding window size for the frequency layer (last
+            N tool calls per thread, across all tool names). Default: 80.
+        tool_freq_diversity_floor: If ``distinct(stable_keys) / count`` for a
+            tool name in the window is at or above this ratio, the calls are
+            treated as legitimate breadth-first work and no warning fires.
+            Default: 0.5 (i.e. fire only when at least half the calls are
+            repeats of one another).
     """
 
     def __init__(
@@ -165,20 +182,31 @@ class LoopDetectionMiddleware(AgentMiddleware[AgentState]):
         max_tracked_threads: int = _DEFAULT_MAX_TRACKED_THREADS,
         tool_freq_warn: int = _DEFAULT_TOOL_FREQ_WARN,
         tool_freq_hard_limit: int = _DEFAULT_TOOL_FREQ_HARD_LIMIT,
+        tool_freq_window: int = _DEFAULT_TOOL_FREQ_WINDOW,
+        tool_freq_diversity_floor: float = _DEFAULT_TOOL_FREQ_DIVERSITY_FLOOR,
     ):
         super().__init__()
+        if tool_freq_window < tool_freq_warn:
+            raise ValueError("tool_freq_window must be >= tool_freq_warn")
+        if not 0.0 <= tool_freq_diversity_floor <= 1.0:
+            raise ValueError("tool_freq_diversity_floor must be in [0.0, 1.0]")
+
         self.warn_threshold = warn_threshold
         self.hard_limit = hard_limit
         self.window_size = window_size
         self.max_tracked_threads = max_tracked_threads
         self.tool_freq_warn = tool_freq_warn
         self.tool_freq_hard_limit = tool_freq_hard_limit
+        self.tool_freq_window = tool_freq_window
+        self.tool_freq_diversity_floor = tool_freq_diversity_floor
         self._lock = threading.Lock()
         # Per-thread tracking using OrderedDict for LRU eviction
         self._history: OrderedDict[str, list[str]] = OrderedDict()
         self._warned: dict[str, set[str]] = defaultdict(set)
-        # Per-thread, per-tool-type cumulative call counts
-        self._tool_freq: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+        # Per-thread sliding window of recent (tool_name, stable_key) pairs.
+        # Capped at tool_freq_window so it self-clears as the conversation
+        # advances — long-running threads don't accumulate stale counts.
+        self._tool_history: dict[str, deque[tuple[str, str]]] = {}
         self._tool_freq_warned: dict[str, set[str]] = defaultdict(set)
 
     def _get_thread_id(self, runtime: Runtime) -> str:
@@ -196,7 +224,7 @@ class LoopDetectionMiddleware(AgentMiddleware[AgentState]):
         while len(self._history) > self.max_tracked_threads:
             evicted_id, _ = self._history.popitem(last=False)
             self._warned.pop(evicted_id, None)
-            self._tool_freq.pop(evicted_id, None)
+            self._tool_history.pop(evicted_id, None)
             self._tool_freq_warned.pop(evicted_id, None)
             logger.debug("Evicted loop tracking for thread %s (LRU)", evicted_id)
 
@@ -225,7 +253,8 @@ class LoopDetectionMiddleware(AgentMiddleware[AgentState]):
             return None, False
 
         thread_id = self._get_thread_id(runtime)
-        call_hash = _hash_tool_calls(tool_calls)
+        typed_calls = _typed_tool_calls(tool_calls)
+        call_hash = _hash_typed_calls(typed_calls)
 
         with self._lock:
             # Touch / create entry (move to end for LRU)
@@ -271,39 +300,65 @@ class LoopDetectionMiddleware(AgentMiddleware[AgentState]):
                     )
                     return _WARNING_MSG, False
 
-            # --- Layer 2: per-tool-type frequency ---
-            freq = self._tool_freq[thread_id]
-            for tc in tool_calls:
-                name = tc.get("name", "")
-                if not name:
-                    continue
-                freq[name] += 1
-                tc_count = freq[name]
+            # --- Layer 2: per-tool-type frequency in sliding window with diversity gate ---
+            window = self._tool_history.get(thread_id)
+            if window is None:
+                window = deque(maxlen=self.tool_freq_window)
+                self._tool_history[thread_id] = window
+            for name, key in typed_calls:
+                if name:
+                    window.append((name, key))
 
-                if tc_count >= self.tool_freq_hard_limit:
-                    logger.error(
-                        "Tool frequency hard limit reached — forcing stop",
-                        extra={
-                            "thread_id": thread_id,
-                            "tool_name": name,
-                            "count": tc_count,
-                        },
-                    )
-                    return _TOOL_FREQ_HARD_STOP_MSG.format(tool_name=name, count=tc_count), True
+            return self._check_tool_frequency(thread_id, window)
 
-                if tc_count >= self.tool_freq_warn:
-                    warned = self._tool_freq_warned[thread_id]
-                    if name not in warned:
-                        warned.add(name)
-                        logger.warning(
-                            "Tool frequency warning — too many calls to same tool type",
-                            extra={
-                                "thread_id": thread_id,
-                                "tool_name": name,
-                                "count": tc_count,
-                            },
-                        )
-                        return _TOOL_FREQ_WARNING_MSG.format(tool_name=name, count=tc_count), False
+    def _check_tool_frequency(
+        self,
+        thread_id: str,
+        window: deque[tuple[str, str]],
+    ) -> tuple[str | None, bool]:
+        """Tally same-name calls within the window, gated on argument diversity."""
+        keys_by_name: dict[str, list[str]] = defaultdict(list)
+        for name, key in window:
+            keys_by_name[name].append(key)
+
+        for name, keys in keys_by_name.items():
+            count = len(keys)
+            if count < self.tool_freq_warn:
+                continue
+            distinct = len(set(keys))
+            diversity_ratio = distinct / count
+            if diversity_ratio >= self.tool_freq_diversity_floor:
+                # Broad research / breadth-first work, not a loop.
+                continue
+
+            if count >= self.tool_freq_hard_limit:
+                logger.error(
+                    "Tool frequency hard limit reached — forcing stop",
+                    extra={
+                        "thread_id": thread_id,
+                        "tool_name": name,
+                        "count": count,
+                        "distinct": distinct,
+                        "diversity_ratio": round(diversity_ratio, 3),
+                    },
+                )
+                return _TOOL_FREQ_HARD_STOP_MSG.format(tool_name=name, count=count), True
+
+            warned = self._tool_freq_warned[thread_id]
+            if name in warned:
+                continue
+            warned.add(name)
+            logger.warning(
+                "Tool frequency warning — repetitive calls to same tool type",
+                extra={
+                    "thread_id": thread_id,
+                    "tool_name": name,
+                    "count": count,
+                    "distinct": distinct,
+                    "diversity_ratio": round(diversity_ratio, 3),
+                },
+            )
+            return _TOOL_FREQ_WARNING_MSG.format(tool_name=name, count=count), False
 
         return None, False
 
@@ -380,10 +435,10 @@ class LoopDetectionMiddleware(AgentMiddleware[AgentState]):
             if thread_id:
                 self._history.pop(thread_id, None)
                 self._warned.pop(thread_id, None)
-                self._tool_freq.pop(thread_id, None)
+                self._tool_history.pop(thread_id, None)
                 self._tool_freq_warned.pop(thread_id, None)
             else:
                 self._history.clear()
                 self._warned.clear()
-                self._tool_freq.clear()
+                self._tool_history.clear()
                 self._tool_freq_warned.clear()

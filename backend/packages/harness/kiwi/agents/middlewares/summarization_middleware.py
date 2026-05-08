@@ -138,6 +138,44 @@ class KiwiSummarizationMiddleware(SummarizationMiddleware):
             )
         )
 
+    def _find_safe_cutoff_point(self, messages: list[AnyMessage], cutoff_index: int) -> int:
+        """Walk the cutoff back so no preserved ToolMessage loses its AIMessage.
+
+        Parent only adjusts when the cutoff lands on a ToolMessage; this also
+        handles cutoffs landing on any other message type (HumanMessage,
+        AIMessage without tool_calls) that sits between an AIMessage with
+        tool_calls and its ToolMessages.
+        """
+        cutoff_index = super()._find_safe_cutoff_point(messages, cutoff_index)
+        if cutoff_index <= 0 or cutoff_index >= len(messages):
+            return cutoff_index
+
+        preserved_tool_msg_ids: set[str] = set()
+        preserved_ai_ids: set[str] = set()
+        for msg in messages[cutoff_index:]:
+            if isinstance(msg, ToolMessage) and msg.tool_call_id:
+                preserved_tool_msg_ids.add(msg.tool_call_id)
+            elif isinstance(msg, AIMessage) and msg.tool_calls:
+                preserved_ai_ids.update(tc.get("id") for tc in msg.tool_calls if tc.get("id"))
+
+        unmatched = preserved_tool_msg_ids - preserved_ai_ids
+        if not unmatched:
+            return cutoff_index
+
+        for i in range(cutoff_index - 1, -1, -1):
+            msg = messages[i]
+            if not (isinstance(msg, AIMessage) and msg.tool_calls):
+                continue
+            ai_tc_ids = {tc.get("id") for tc in msg.tool_calls if tc.get("id")}
+            matched = ai_tc_ids & unmatched
+            if matched:
+                cutoff_index = i
+                unmatched -= matched
+                if not unmatched:
+                    break
+
+        return cutoff_index
+
     def before_model(self, state: AgentState, runtime: Runtime) -> dict | None:
         return self._maybe_summarize(state, runtime)
 

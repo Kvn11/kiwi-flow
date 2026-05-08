@@ -1,16 +1,11 @@
-"""Middleware to fix dangling tool calls in message history.
+"""Middleware to repair tool_call/ToolMessage mismatches before model invocation.
 
-A dangling tool call occurs when an AIMessage contains tool_calls but there are
-no corresponding ToolMessages in the history (e.g., due to user interruption or
-request cancellation). This causes LLM errors due to incomplete message format.
+- AIMessage tool_calls with no matching ToolMessage get a synthetic error
+  ToolMessage inserted right after them.
+- ToolMessages with no matching AIMessage tool_call are dropped.
 
-This middleware intercepts the model call to detect and patch such gaps by
-inserting synthetic ToolMessages with an error indicator immediately after the
-AIMessage that made the tool calls, ensuring correct message ordering.
-
-Note: Uses wrap_model_call instead of before_model to ensure patches are inserted
-at the correct positions (immediately after each dangling AIMessage), not appended
-to the end of the message list as before_model + add_messages reducer would do.
+Uses wrap_model_call so patches land at the correct positions instead of being
+appended via the add_messages reducer.
 """
 
 import json
@@ -73,45 +68,34 @@ class DanglingToolCallMiddleware(AgentMiddleware[AgentState]):
         return normalized
 
     def _build_patched_messages(self, messages: list) -> list | None:
-        """Return a new message list with patches inserted at the correct positions.
-
-        For each AIMessage with dangling tool_calls (no corresponding ToolMessage),
-        a synthetic ToolMessage is inserted immediately after that AIMessage.
-        Returns None if no patches are needed.
-        """
-        # Collect IDs of all existing ToolMessages
-        existing_tool_msg_ids: set[str] = set()
+        """Repair tool_call/ToolMessage mismatches; return ``None`` if balanced."""
+        ai_tool_call_ids: set[str] = set()
+        tool_msg_ids: set[str] = set()
         for msg in messages:
-            if isinstance(msg, ToolMessage):
-                existing_tool_msg_ids.add(msg.tool_call_id)
+            if getattr(msg, "type", None) == "ai":
+                for tc in self._message_tool_calls(msg):
+                    tc_id = tc.get("id")
+                    if tc_id:
+                        ai_tool_call_ids.add(tc_id)
+            elif isinstance(msg, ToolMessage) and msg.tool_call_id:
+                tool_msg_ids.add(msg.tool_call_id)
 
-        # Check if any patching is needed
-        needs_patch = False
-        for msg in messages:
-            if getattr(msg, "type", None) != "ai":
-                continue
-            for tc in self._message_tool_calls(msg):
-                tc_id = tc.get("id")
-                if tc_id and tc_id not in existing_tool_msg_ids:
-                    needs_patch = True
-                    break
-            if needs_patch:
-                break
-
-        if not needs_patch:
+        orphan_ids = tool_msg_ids - ai_tool_call_ids
+        dangling_ids = ai_tool_call_ids - tool_msg_ids
+        if not orphan_ids and not dangling_ids:
             return None
 
-        # Build new list with patches inserted right after each dangling AIMessage
         patched: list = []
-        patched_ids: set[str] = set()
-        patch_count = 0
+        injected_ids: set[str] = set()
         for msg in messages:
+            if isinstance(msg, ToolMessage) and msg.tool_call_id in orphan_ids:
+                continue
             patched.append(msg)
             if getattr(msg, "type", None) != "ai":
                 continue
             for tc in self._message_tool_calls(msg):
                 tc_id = tc.get("id")
-                if tc_id and tc_id not in existing_tool_msg_ids and tc_id not in patched_ids:
+                if tc_id in dangling_ids and tc_id not in injected_ids:
                     patched.append(
                         ToolMessage(
                             content="[Tool call was interrupted and did not return a result.]",
@@ -120,10 +104,12 @@ class DanglingToolCallMiddleware(AgentMiddleware[AgentState]):
                             status="error",
                         )
                     )
-                    patched_ids.add(tc_id)
-                    patch_count += 1
+                    injected_ids.add(tc_id)
 
-        logger.warning(f"Injecting {patch_count} placeholder ToolMessage(s) for dangling tool calls")
+        if orphan_ids:
+            logger.warning(f"Dropping {len(orphan_ids)} orphan ToolMessage(s) with no matching AIMessage tool_call")
+        if injected_ids:
+            logger.warning(f"Injecting {len(injected_ids)} placeholder ToolMessage(s) for dangling tool calls")
         return patched
 
     @override

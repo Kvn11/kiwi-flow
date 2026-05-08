@@ -119,6 +119,46 @@ class TestBuildPatchedMessagesPatching:
         assert "interrupted" in tool_msg.content.lower()
         assert tool_msg.name == "bash"
 
+    def test_orphan_tool_message_is_dropped(self):
+        """ToolMessage with no matching AIMessage tool_call gets dropped."""
+        mw = DanglingToolCallMiddleware()
+        msgs = [
+            HumanMessage(content="hi"),
+            _tool_msg("call_orphan", "bash"),
+            AIMessage(content="ok"),
+        ]
+        patched = mw._build_patched_messages(msgs)
+        assert patched is not None
+        assert len(patched) == 2
+        assert isinstance(patched[0], HumanMessage)
+        assert isinstance(patched[1], AIMessage)
+
+    def test_orphan_tool_message_dropped_alongside_valid_pair(self):
+        mw = DanglingToolCallMiddleware()
+        msgs = [
+            _ai_with_tool_calls([_tc("bash", "call_1")]),
+            _tool_msg("call_1", "bash"),
+            _tool_msg("call_orphan", "bash"),  # orphan
+        ]
+        patched = mw._build_patched_messages(msgs)
+        assert patched is not None
+        tool_ids = [m.tool_call_id for m in patched if isinstance(m, ToolMessage)]
+        assert tool_ids == ["call_1"]
+
+    def test_orphan_drop_combined_with_inject(self):
+        """Both directions of repair in one pass."""
+        mw = DanglingToolCallMiddleware()
+        msgs = [
+            _ai_with_tool_calls([_tc("bash", "call_1")]),  # missing ToolMessage
+            _tool_msg("call_orphan", "read"),  # orphan ToolMessage
+        ]
+        patched = mw._build_patched_messages(msgs)
+        assert patched is not None
+        tool_msgs = [m for m in patched if isinstance(m, ToolMessage)]
+        assert len(tool_msgs) == 1
+        assert tool_msgs[0].tool_call_id == "call_1"
+        assert tool_msgs[0].status == "error"
+
     def test_raw_provider_tool_calls_are_patched(self):
         mw = DanglingToolCallMiddleware()
         msgs = [
