@@ -3,7 +3,8 @@
 Verifies the factory produces a working LangGraph agent that can actually
 process messages end-to-end with a real LLM.
 
-Tests marked ``requires_llm`` are skipped in CI or when OPENAI_API_KEY is unset.
+Tests marked ``requires_llm`` are opt-in: set ``RUN_LIVE_LLM_TESTS=1``
+(and ``OPENAI_API_KEY``) outside CI to enable.
 """
 
 import os
@@ -13,8 +14,10 @@ import pytest
 from langchain_core.tools import tool
 
 requires_llm = pytest.mark.skipif(
-    os.getenv("CI", "").lower() in ("true", "1") or not os.getenv("OPENAI_API_KEY"),
-    reason="Requires LLM API key — skipped in CI or when OPENAI_API_KEY is unset",
+    os.getenv("CI", "").lower() in ("true", "1")
+    or not os.getenv("OPENAI_API_KEY")
+    or not os.getenv("RUN_LIVE_LLM_TESTS"),
+    reason="Live-LLM tests are opt-in: set RUN_LIVE_LLM_TESTS=1 (and OPENAI_API_KEY) outside CI to enable",
 )
 
 

@@ -3,7 +3,7 @@
 These tests require a working config.yaml with valid API credentials.
 They are skipped in CI and must be run explicitly:
 
-    PYTHONPATH=. uv run pytest tests/test_client_live.py -v -s
+    RUN_LIVE_LLM_TESTS=1 PYTHONPATH=. uv run pytest tests/test_client_live.py -v -s
 """
 
 import json
@@ -16,10 +16,13 @@ from kiwi.client import KiwiClient, StreamEvent
 from kiwi.sandbox.security import is_host_bash_allowed
 from kiwi.uploads.manager import PathTraversalError
 
-# Skip entire module in CI or when no config.yaml exists
+# Live tests are opt-in. Set RUN_LIVE_LLM_TESTS=1 to enable; CI and missing
+# config.yaml still skip even when opted in.
 _skip_reason = None
 if os.environ.get("CI"):
     _skip_reason = "Live tests skipped in CI"
+elif not os.environ.get("RUN_LIVE_LLM_TESTS"):
+    _skip_reason = "Live tests are opt-in: set RUN_LIVE_LLM_TESTS=1 to enable"
 elif not Path(__file__).resolve().parents[2].joinpath("config.yaml").exists():
     _skip_reason = "No config.yaml found — live tests require valid API credentials"
 

@@ -9,7 +9,8 @@ Core principle: use the real LLM from config.yaml, let config, middleware
 chain, tool registration, file I/O, and event serialization all run for real.
 Only KIWI_FLOW_HOME is redirected to tmp_path for filesystem isolation.
 
-Tests that call the LLM are marked ``requires_llm`` and skipped in CI.
+Tests that call the LLM are marked ``requires_llm`` and are opt-in:
+set ``RUN_LIVE_LLM_TESTS=1`` (and ``OPENAI_API_KEY``) outside CI to enable.
 File-management tests (upload/list/delete) don't need LLM and run everywhere.
 """
 
@@ -34,8 +35,10 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "../../.env"))
 # ---------------------------------------------------------------------------
 
 requires_llm = pytest.mark.skipif(
-    os.getenv("CI", "").lower() in ("true", "1") or not os.getenv("OPENAI_API_KEY"),
-    reason="Requires LLM API key — skipped in CI or when OPENAI_API_KEY is unset",
+    os.getenv("CI", "").lower() in ("true", "1")
+    or not os.getenv("OPENAI_API_KEY")
+    or not os.getenv("RUN_LIVE_LLM_TESTS"),
+    reason="Live-LLM tests are opt-in: set RUN_LIVE_LLM_TESTS=1 (and OPENAI_API_KEY) outside CI to enable",
 )
 
 
