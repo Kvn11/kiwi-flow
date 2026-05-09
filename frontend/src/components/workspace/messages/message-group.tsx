@@ -12,7 +12,7 @@ import {
   SquareTerminalIcon,
   WrenchIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 
 import {
   ChainOfThought,
@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { useI18n } from "@/core/i18n/hooks";
 import {
   extractReasoningContentFromMessage,
-  findToolCallResult,
+  extractTextFromMessage,
 } from "@/core/messages/utils";
 import { useRehypeSplitWordsIntoSpans } from "@/core/rehype";
 import { extractTitleFromMarkdown } from "@/core/utils/markdown";
@@ -39,14 +39,17 @@ import { Tooltip } from "../tooltip";
 
 import { MarkdownContent } from "./markdown-content";
 
-export function MessageGroup({
+function MessageGroup_({
   className,
   messages,
   isLoading = false,
+  isStreaming = false,
 }: {
   className?: string;
   messages: Message[];
   isLoading?: boolean;
+  // Gates the per-word fade-in plugin on reasoning markdown.
+  isStreaming?: boolean;
 }) {
   const { t } = useI18n();
   const [showAbove, setShowAbove] = useState(
@@ -76,7 +79,7 @@ export function MessageGroup({
       return filteredSteps[filteredSteps.length - 1];
     }
   }, [lastToolCallStep, steps]);
-  const rehypePlugins = useRehypeSplitWordsIntoSpans(isLoading);
+  const rehypePlugins = useRehypeSplitWordsIntoSpans(isStreaming);
   return (
     <ChainOfThought
       className={cn("w-full gap-2 rounded-lg border p-0.5", className)}
@@ -442,45 +445,71 @@ interface CoTToolCallStep extends GenericCoTStep<"toolCall"> {
 type CoTStep = CoTReasoningStep | CoTToolCallStep;
 
 function convertToSteps(messages: Message[]): CoTStep[] {
+  // Build a single tool_call_id -> text result map up front so each tool call
+  // is an O(1) lookup. Previously findToolCallResult re-scanned all messages
+  // for every tool call, making this O(n*m) for a chain-of-thought with many
+  // tool calls during streaming.
+  const toolResults = new Map<string, string>();
+  for (const message of messages) {
+    if (message.type !== "tool") continue;
+    const id = message.tool_call_id;
+    if (!id || toolResults.has(id)) continue;
+    const text = extractTextFromMessage(message);
+    if (text) toolResults.set(id, text);
+  }
+
   const steps: CoTStep[] = [];
   for (const message of messages) {
-    if (message.type === "ai") {
-      const reasoning = extractReasoningContentFromMessage(message);
-      if (reasoning) {
-        const step: CoTReasoningStep = {
-          id: message.id,
-          messageId: message.id,
-          type: "reasoning",
-          reasoning: extractReasoningContentFromMessage(message),
-        };
-        steps.push(step);
-      }
-      for (const tool_call of message.tool_calls ?? []) {
-        if (tool_call.name === "task") {
-          continue;
+    if (message.type !== "ai") continue;
+
+    const reasoning = extractReasoningContentFromMessage(message);
+    if (reasoning) {
+      steps.push({
+        id: message.id,
+        messageId: message.id,
+        type: "reasoning",
+        reasoning,
+      });
+    }
+    for (const tool_call of message.tool_calls ?? []) {
+      if (tool_call.name === "task") continue;
+      const step: CoTToolCallStep = {
+        id: tool_call.id,
+        messageId: message.id,
+        type: "toolCall",
+        name: tool_call.name,
+        args: tool_call.args,
+      };
+      const toolCallId = tool_call.id;
+      const toolCallResult = toolCallId ? toolResults.get(toolCallId) : undefined;
+      if (toolCallResult) {
+        try {
+          step.result = JSON.parse(toolCallResult);
+        } catch {
+          step.result = toolCallResult;
         }
-        const step: CoTToolCallStep = {
-          id: tool_call.id,
-          messageId: message.id,
-          type: "toolCall",
-          name: tool_call.name,
-          args: tool_call.args,
-        };
-        const toolCallId = tool_call.id;
-        if (toolCallId) {
-          const toolCallResult = findToolCallResult(toolCallId, messages);
-          if (toolCallResult) {
-            try {
-              const json = JSON.parse(toolCallResult);
-              step.result = json;
-            } catch {
-              step.result = toolCallResult;
-            }
-          }
-        }
-        steps.push(step);
       }
+      steps.push(step);
     }
   }
   return steps;
 }
+
+// `groupMessages` rebuilds the `messages` array on every parent render, so the
+// default shallow compare would never bail out. Compare by message identity:
+// if every message in the group is the same object reference, the group is
+// settled and the (expensive) chain-of-thought subtree can be skipped.
+export const MessageGroup = memo(MessageGroup_, (prev, next) => {
+  if (
+    prev.className !== next.className ||
+    prev.isLoading !== next.isLoading ||
+    prev.isStreaming !== next.isStreaming
+  ) {
+    return false;
+  }
+  if (prev.messages.length !== next.messages.length) return false;
+  for (let i = 0; i < prev.messages.length; i++) {
+    if (prev.messages[i] !== next.messages[i]) return false;
+  }
+  return true;
+});

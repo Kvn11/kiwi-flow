@@ -5,7 +5,7 @@ import {
   Loader2Icon,
   XCircleIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Streamdown } from "streamdown";
 
 import {
@@ -29,18 +29,18 @@ import { FlipDisplay } from "../flip-display";
 
 import { MarkdownContent } from "./markdown-content";
 
-export function SubtaskCard({
+function SubtaskCard_({
   className,
   taskId,
-  isLoading,
 }: {
   className?: string;
   taskId: string;
-  isLoading: boolean;
 }) {
   const { t } = useI18n();
   const [collapsed, setCollapsed] = useState(true);
-  const rehypePlugins = useRehypeSplitWordsIntoSpans(isLoading);
+  // Subtask results arrive in one shot (not streamed token-by-token), so the
+  // per-word fade-in plugin only wastes work after the first render.
+  const rehypePlugins = useRehypeSplitWordsIntoSpans(false);
   const task = useSubtask(taskId)!;
   const icon = useMemo(() => {
     if (task.status === "completed") {
@@ -175,3 +175,5 @@ export function SubtaskCard({
     </ChainOfThought>
   );
 }
+
+export const SubtaskCard = memo(SubtaskCard_);

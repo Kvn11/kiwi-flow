@@ -13,6 +13,7 @@ import {
   Message as AIElementMessage,
   MessageContent as AIElementMessageContent,
   MessageResponse as AIElementMessageResponse,
+  type MessageResponseProps,
   MessageToolbar,
 } from "@/components/ai-elements/message";
 import {
@@ -40,16 +41,19 @@ import { CopyButton } from "../copy-button";
 import { MarkdownContent } from "./markdown-content";
 import { MessageTokenUsage } from "./message-token-usage";
 
-export function MessageListItem({
+function MessageListItem_({
   className,
   message,
   isLoading,
+  isStreaming = false,
   threadId,
   tokenUsageEnabled = false,
 }: {
   className?: string;
   message: Message;
   isLoading?: boolean;
+  // Gates the per-word fade-in plugin; cheap to skip on settled messages.
+  isStreaming?: boolean;
   threadId: string;
   tokenUsageEnabled?: boolean;
 }) {
@@ -63,6 +67,7 @@ export function MessageListItem({
         className={isHuman ? "w-fit" : "w-full"}
         message={message}
         isLoading={isLoading}
+        isStreaming={isStreaming}
         threadId={threadId}
         tokenUsageEnabled={tokenUsageEnabled}
       />
@@ -122,16 +127,25 @@ function MessageContent_({
   className,
   message,
   isLoading = false,
+  isStreaming = false,
   threadId,
   tokenUsageEnabled = false,
 }: {
   className?: string;
   message: Message;
   isLoading?: boolean;
+  isStreaming?: boolean;
   threadId: string;
   tokenUsageEnabled?: boolean;
 }) {
-  const rehypePlugins = useRehypeSplitWordsIntoSpans(isLoading);
+  const splitWordPlugins = useRehypeSplitWordsIntoSpans(isStreaming);
+  const rehypePlugins = useMemo(
+    (): MessageResponseProps["rehypePlugins"] => [
+      ...splitWordPlugins,
+      [rehypeKatex, { output: "html" }],
+    ],
+    [splitWordPlugins],
+  );
   const isHuman = message.type === "human";
   const components = useMemo(
     () => ({
@@ -245,7 +259,7 @@ function MessageContent_({
       <MarkdownContent
         content={contentToDisplay}
         isLoading={isLoading}
-        rehypePlugins={[...rehypePlugins, [rehypeKatex, { output: "html" }]]}
+        rehypePlugins={rehypePlugins}
         className="my-3"
         components={components}
       />
@@ -424,3 +438,5 @@ function RichFileCard({
 }
 
 const MessageContent = memo(MessageContent_);
+
+export const MessageListItem = memo(MessageListItem_);

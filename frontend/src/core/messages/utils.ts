@@ -315,18 +315,6 @@ export function hasSubagent(message: AIMessage) {
   return false;
 }
 
-export function findToolCallResult(toolCallId: string, messages: Message[]) {
-  for (const message of messages) {
-    if (message.type === "tool" && message.tool_call_id === toolCallId) {
-      const content = extractTextFromMessage(message);
-      if (content) {
-        return content;
-      }
-    }
-  }
-  return undefined;
-}
-
 export function isHiddenFromUIMessage(message: Message) {
   return message.additional_kwargs?.hide_from_ui === true;
 }

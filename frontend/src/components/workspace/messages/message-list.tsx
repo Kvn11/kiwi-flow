@@ -48,9 +48,16 @@ export function MessageList({
   tokenUsageEnabled?: boolean;
 }) {
   const { t } = useI18n();
-  const rehypePlugins = useRehypeSplitWordsIntoSpans(thread.isLoading);
   const updateSubtask = useUpdateSubtask();
   const messages = thread.messages;
+  // The fade-in word animation only makes sense on the actively-streaming
+  // message; settled messages would pay a per-text-node rehype cost for no
+  // visible benefit, so children only enable the plugin when their message
+  // matches this id.
+  const streamingMessageId = thread.isLoading
+    ? (messages.at(-1)?.id ?? null)
+    : null;
+  const rehypePlugins = useRehypeSplitWordsIntoSpans(false);
   if (thread.isThreadLoading && messages.length === 0) {
     return <MessageListSkeleton />;
   }
@@ -67,6 +74,7 @@ export function MessageList({
                   key={`${group.id}/${msg.id}`}
                   message={msg}
                   isLoading={thread.isLoading}
+                  isStreaming={msg.id === streamingMessageId}
                   threadId={threadId}
                   tokenUsageEnabled={tokenUsageEnabled}
                 />
@@ -177,6 +185,7 @@ export function MessageList({
                     key={"thinking-group-" + message.id}
                     messages={[message]}
                     isLoading={thread.isLoading}
+                    isStreaming={message.id === streamingMessageId}
                   />,
                 );
               }
@@ -193,11 +202,7 @@ export function MessageList({
                 .map((toolCall) => toolCall.id);
               for (const taskId of taskIds ?? []) {
                 results.push(
-                  <SubtaskCard
-                    key={"task-group-" + taskId}
-                    taskId={taskId!}
-                    isLoading={thread.isLoading}
-                  />,
+                  <SubtaskCard key={"task-group-" + taskId} taskId={taskId!} />,
                 );
               }
             }
@@ -220,11 +225,17 @@ export function MessageList({
               message.type === "ai" &&
               (hasToolCalls(message) ? true : !hasContent(message)),
           );
+          // The streaming message is always the last message overall, so only
+          // the group containing the last entry can be the streaming one.
+          const groupHasStreamingMessage =
+            streamingMessageId !== null &&
+            group.messages.at(-1)?.id === streamingMessageId;
           return (
             <div key={"group-" + group.id} className="w-full">
               <MessageGroup
                 messages={group.messages}
                 isLoading={thread.isLoading}
+                isStreaming={groupHasStreamingMessage}
               />
               <MessageTokenUsageList
                 enabled={tokenUsageEnabled}
