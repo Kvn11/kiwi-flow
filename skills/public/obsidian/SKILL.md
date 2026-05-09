@@ -1,24 +1,28 @@
 ---
 name: obsidian
-description: Use when reading, writing, searching, or organizing notes in an Obsidian vault that the LLM maintains as a persistent, compounding knowledge base (wiki). Triggers on tasks like "add this source to the vault", "ingest into the brain", "what does the wiki say about X", "lint/audit the notes", or any work against the user's brain vault.
+description: Use when reading, writing, searching, or organizing notes in an Obsidian vault — the persistent LLM wiki. Triggers on "add this source to the vault", "ingest into the brain", "synthesize and add to my notes", "what does the wiki say about X", "lint the notes". The vault is `brain`; the CLI is `obsidian` invoked via the bash tool (e.g. `bash -c 'obsidian vault=brain folders'`). Do NOT ask the user for the vault path or which CLI to use. Do NOT ask "what would you like me to do next" after the user has already said to ingest / add / write up / take notes — that instruction is the green light; go straight to the workflow.
 ---
 
 # Obsidian Knowledge-Base Skill
 
-LLM-wiki operating model on top of the `obsidian` CLI. For any KB task: pick the operation (ingest / query / lint), open its guide, then drive the vault with the CLI.
+**TL;DR — start here, do not ask the user:**
+
+- Vault: `brain` (already exists on the host).
+- CLI: `obsidian` (host shell binary). Call it via the **bash tool**, e.g. `bash -c 'obsidian vault=brain folders'`.
+- There is no MCP tool, no API, no filesystem path you need. Every command in this skill is shell.
+- Verify once: run `obsidian vault=brain folders` before writing. Folder list back → proceed. `command not found` → stop and report; do not write markdown files to a guessed directory.
+- An empty folder list (just `/`) means the vault is empty, not missing. Proceed normally.
+
+**No clarifying questions before starting.** If the user said "add to the vault", "ingest", "write up", "take notes on", or anything that names a source and a target, that is the full instruction — go. Do not ask "what would you like me to do next?" after reading the source. Do not ask "where is the vault?" or "which CLI?". Read the source → run the verify command → open `ingest.md` → execute the workflow. The only acceptable reason to stop and ask the user mid-task is a genuine ambiguity in the source itself (e.g. two plausible scopes the user must pick between), and even then ask once with a concrete proposal, not an open-ended menu.
 
 ## Prerequisites
 
-- Obsidian 1.12+ running
+- Obsidian 1.12+ running on the host
 - CLI enabled in Settings → General → "Command line interface"
 
-## Vault Convention
-
-Syntax: `obsidian vault=<name> <command> [params]`. Always pass `vault=` first.
-
-Primary vault is `brain`. DeerFlow notes live under `DeerFlow/`. See `reference_brain_vault` memory for layout.
-
 ## Operating Model: LLM Wiki
+
+For any KB task: pick the operation (ingest / query / lint), open its guide, then drive the vault with the CLI. Syntax: `obsidian vault=<name> <command> [params]` — always pass `vault=` first.
 
 The vault is a persistent, compounding wiki — not RAG. The user curates sources and asks questions; you read, synthesize, file, and cross-reference. Knowledge accumulates; you do not re-derive on every query.
 
@@ -36,10 +40,23 @@ Three operations:
 | **Query** | Answering against the wiki | [query.md](query.md) |
 | **Lint** | Periodic health-check | [lint.md](lint.md) |
 
-Two navigation files anchor each section:
+**No content-index / MOC notes.** Discovery is the CLI's job: `files folder=<section>`, `search query=...`, `tags`, `backlinks`/`links`, `outline`. A hand-curated index page just adds drift (entries pointing at moved files, files missing from the index) without giving the agent anything `files` doesn't.
 
-- **Content index** (e.g. `DeerFlow/MOC.md`) — every page listed with a one-line summary. Update on every ingest. Read first when querying.
-- **Chronological log** (e.g. `log.md`, or daily notes) — append-only. Prefix entries `## [YYYY-MM-DD] ingest|query|lint | <title>` so `grep "^## \["` works.
+**Keep the chronological log.** One `log.md` (per-section or vault-root). Append-only. Prefix entries `## [YYYY-MM-DD] ingest|query|lint | <title>` so `grep "^## \["` works. The log captures temporal context no CLI primitive surfaces.
+
+**Section orientation notes are optional, not automatic.** Only create one when there's a frame the graph can't express (e.g. an applied operating model). Don't reflexively make a section overview per ingest.
+
+## Naming Convention — filenames must match wikilink display
+
+**Filenames are Title Case, with spaces, matching what you'd write inside `[[ ]]`.** A page titled "Thin Agent Fat Platform" lives at `agent-systems/Thin Agent Fat Platform.md`, and you reference it as `[[Thin Agent Fat Platform]]`. Both resolve.
+
+Do not use kebab-case, snake_case, or lowercase filenames. Obsidian wikilinks resolve against the literal filename (case-insensitive on most platforms, but **not** across naming conventions). A file named `thin-agent-fat-platform.md` will **not** resolve from `[[Thin Agent Fat Platform]]` — they are different strings, and you will end up with an entire cluster of orphans and unresolved links.
+
+If you find yourself slugifying for "URL safety" — stop. There are no URLs. The vault is filesystem + Obsidian; spaces in filenames are correct and idiomatic.
+
+When linking to a page in a sub-folder, the wikilink can be the bare filename (`[[Thin Agent Fat Platform]]`) — Obsidian resolves it. Only disambiguate with a path (`[[agent-systems/Thin Agent Fat Platform]]`) when the same name exists in two folders.
+
+**Verify after writing**: run `unresolved` once. Any entry means a wikilink doesn't match a filename — fix the wikilink (or rename the file), don't ship with broken links.
 
 ## CLI Basics
 

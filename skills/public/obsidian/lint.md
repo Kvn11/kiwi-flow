@@ -13,7 +13,7 @@ Run in order; collect findings before fixing.
 | Dead ends | `deadends` | No outbound links — under-developed or never integrated |
 | Tag drift | `tags counts format=json` | Singletons suggest typos or fragmented categories |
 | Property drift | `properties counts format=json` | Inconsistent frontmatter across pages of the same `type` |
-| Index drift | `read file=MOC` + `files ext=md folder=<section>` | Files missing from the index, or index entries pointing at moved/deleted files |
+| Stale logs | `read file=log` + recent `files` | Recent ingests not reflected in `log.md`, or log claims pages that were renamed/deleted |
 
 ## Semantic checks (manual review)
 
@@ -28,7 +28,7 @@ Run in order; collect findings before fixing.
 2. Group by severity:
    - **Auto-fix**: link repairs from renames, missing index entries, orphans with an obvious parent.
    - **Surface**: contradictions, stale claims, missing concept pages, ambiguous orphans.
-3. Apply auto-fixes (`move` to repair renames; `append` to MOC; add `[[links]]` from natural parents).
+3. Apply auto-fixes (`move` to repair renames; add `[[links]]` from natural parents to repair orphans).
 4. Surface judgment calls — for each: which pages disagree, when each was updated, recommended resolution. Wait for user before editing.
 5. Suggest follow-up sources for obvious gaps.
 6. Log: `## [YYYY-MM-DD] lint | <section>` with counts per finding type.

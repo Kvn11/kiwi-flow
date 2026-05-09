@@ -4,13 +4,12 @@ Search the wiki first. Don't re-derive from raw sources unless the wiki is genui
 
 ## Workflow
 
-1. **Index first.** `read file=MOC` (or section index). Pick candidates from one-line summaries.
-2. **Search.** `search:context query="<term>" format=json`. Use `format=json` whenever parsing.
-3. **Read targeted.** `outline` long pages first, then `read` the relevant section. Don't dump full pages into context.
-4. **Trace the link neighborhood.** `backlinks` and `links` — the answer often sits one hop away.
-5. **Synthesize with citations.** Every non-trivial claim cites a `[[Page]]`. Surface contradictions; don't pick a side silently.
-6. **File if it has lasting value.** `create` a new page and link it from the index. Throwaway clarifications stay in chat.
-7. **Log.** `## [YYYY-MM-DD] query | <summary>` with `[[links]]` to consulted pages and any new page.
+1. **Discover candidates.** `files folder=<section>` to scope, then `search:context query="<term>" format=json`. Use `format=json` whenever parsing. Also useful: `tags`, `properties`, `aliases` for facet navigation. There is no MOC — the CLI is the index.
+2. **Read targeted.** `outline` long pages first, then `read` the relevant section. Don't dump full pages into context.
+3. **Trace the link neighborhood.** `backlinks` and `links` — the answer often sits one hop away.
+4. **Synthesize with citations.** Every non-trivial claim cites a `[[Page]]`. Surface contradictions; don't pick a side silently.
+5. **File if it has lasting value.** `create` a new page and `[[link]]` it from at least one existing page (so it isn't orphaned). Throwaway clarifications stay in chat.
+6. **Log.** Append to `log.md`: `## [YYYY-MM-DD] query | <summary>` with `[[links]]` to consulted pages and any new page.
 
 ## File or skip?
 
