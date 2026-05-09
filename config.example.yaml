@@ -12,7 +12,7 @@
 # ============================================================================
 # Bump this number when the config schema changes.
 # Run `make config-upgrade` to merge new fields into your local config.yaml.
-config_version: 9
+config_version: 10
 
 # ============================================================================
 # Logging
@@ -711,9 +711,12 @@ summarization:
   # Summarization runs when ANY threshold is met (OR logic)
   # You can specify a single trigger or a list of triggers
   trigger:
-    # Trigger when token count reaches 15564
+    # Trigger when token count reaches 25000
+    # Tuned upward from 15564 so a single substantial ingest task (long
+    # blog post + skill files + tool round-trips) does not get summarized
+    # mid-task, which previously erased the user's pending instruction.
     - type: tokens
-      value: 15564
+      value: 25000
     # Uncomment to also trigger when message count reaches 50
     # - type: messages
     #   value: 50
@@ -724,9 +727,11 @@ summarization:
   # Context retention policy after summarization
   # Specifies how much recent history to preserve
   keep:
-    # Keep the most recent 10 messages (recommended)
+    # Keep the most recent 20 messages
+    # Tuned upward from 10 so the user's original imperative survives
+    # several tool-call rounds before falling out of the kept window.
     type: messages
-    value: 10
+    value: 20
     # Alternative: Keep specific token count
     # type: tokens
     # value: 3000
@@ -736,11 +741,62 @@ summarization:
 
   # Maximum tokens to keep when preparing messages for summarization
   # Set to null to skip trimming (not recommended for very long conversations)
-  trim_tokens_to_summarize: 15564
+  trim_tokens_to_summarize: 25000
 
   # Custom summary prompt template (null = use default LangChain prompt)
-  # The prompt should guide the model to extract important context
-  summary_prompt: null
+  # The default upstream prompt biases toward "what was completed" and tends
+  # to compress pending user instructions into past-tense status reports.
+  # That breaks resumption: the next turn sees "the work is done" instead of
+  # "the user asked me to ingest X and I haven't started yet" and the agent
+  # asks "what would you like me to do?" instead of continuing.
+  #
+  # This override forces the summarizer to:
+  #   - preserve the user's standing instruction verbatim
+  #   - describe in-flight work as in-flight (not as completed)
+  #   - emit an explicit "next concrete step" line for the resuming agent.
+  summary_prompt: |
+    <role>Context Extraction Assistant</role>
+
+    <primary_objective>
+    Compress the conversation below into a context block that the next turn can
+    act on without re-reading prior messages. The next turn must be able to
+    continue the user's task without asking what to do.
+    </primary_objective>
+
+    <must_preserve>
+    1. The user's most recent imperative — verbatim if possible — including the
+       artefacts named (URLs, files, vault names, tool names) and the requested
+       action verbs (ingest, add, write up, fix, etc.).
+    2. Open / in-flight work: tasks that have STARTED but not finished. State
+       what was completed, what is still pending, and what the next concrete
+       step is. Do not describe pending work in past tense.
+    3. Decisions the user already made (so we don't re-ask).
+    4. Errors encountered and any unresolved blockers.
+    </must_preserve>
+
+    <do_not>
+    - Do not phrase pending tasks as if they were complete ("the notes are
+      documented", "the analysis is filed"). Use "in progress" / "pending" /
+      "next step:".
+    - Do not drop the user's original task description in favour of a tidy
+      summary of intermediate findings.
+    - Do not invent completion. If the conversation shows reads but no writes,
+      the work is not done.
+    </do_not>
+
+    <output_format>
+    Return three sections:
+    - **User's standing instruction:** (verbatim or minimally paraphrased)
+    - **Progress so far:** (what's actually been written/executed, with paths)
+    - **Next concrete step:** (one sentence — what the agent should do on resume)
+    Then any other context worth preserving.
+    Respond ONLY with the extracted context.
+    </output_format>
+
+    <messages>
+    Messages to summarize:
+    {messages}
+    </messages>
 
   # Recently-loaded skill files are excluded from summarization so the agent
   # does not lose skill instructions after a compression pass. Claude Code uses
