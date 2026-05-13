@@ -4,6 +4,7 @@ import {
   BellIcon,
   BrainIcon,
   InfoIcon,
+  KeyRoundIcon,
   LibraryIcon,
   PaletteIcon,
   SparklesIcon,
@@ -20,6 +21,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AboutSettingsPage } from "@/components/workspace/settings/about-settings-page";
 import { AppearanceSettingsPage } from "@/components/workspace/settings/appearance-settings-page";
+import { CredentialsSettingsPage } from "@/components/workspace/settings/credentials-settings-page";
 import { LibrarySkillSettingsPage } from "@/components/workspace/settings/library-skill-settings-page";
 import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
 import { NotificationSettingsPage } from "@/components/workspace/settings/notification-settings-page";
@@ -32,6 +34,7 @@ type SettingsSection =
   | "appearance"
   | "memory"
   | "tools"
+  | "credentials"
   | "skills"
   | "library-skills"
   | "notification"
@@ -73,6 +76,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
         icon: BrainIcon,
       },
       { id: "tools", label: t.settings.sections.tools, icon: WrenchIcon },
+      {
+        id: "credentials",
+        label: t.settings.sections.credentials,
+        icon: KeyRoundIcon,
+      },
       { id: "skills", label: t.settings.sections.skills, icon: SparklesIcon },
       {
         id: "library-skills",
@@ -85,6 +93,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
       t.settings.sections.appearance,
       t.settings.sections.memory,
       t.settings.sections.tools,
+      t.settings.sections.credentials,
       t.settings.sections.skills,
       t.settings.sections.librarySkills,
       t.settings.sections.notification,
@@ -136,6 +145,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
               {activeSection === "appearance" && <AppearanceSettingsPage />}
               {activeSection === "memory" && <MemorySettingsPage />}
               {activeSection === "tools" && <ToolSettingsPage />}
+              {activeSection === "credentials" && <CredentialsSettingsPage />}
               {activeSection === "skills" && (
                 <SkillSettingsPage
                   onClose={() => props.onOpenChange?.(false)}

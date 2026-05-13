@@ -101,3 +101,31 @@ def load_skills(skills_path: Path | None = None, use_config: bool = True, enable
     skills.sort(key=lambda s: s.name)
 
     return skills
+
+
+def iter_all_skill_files() -> list[Path]:
+    """Return every SKILL.md across public, custom, and skill-library roots.
+
+    Each loader's failure is logged and skipped so a broken source doesn't
+    starve the other. Used by the credential registry and the skill-dispatch
+    registry — anything that needs to walk every declared skill.
+    """
+    skill_files: list[Path] = []
+
+    try:
+        for skill in load_skills(enabled_only=False):
+            if skill.skill_file.is_file():
+                skill_files.append(skill.skill_file)
+    except Exception as exc:
+        logger.warning("Failed to enumerate public/custom skills: %s", exc)
+
+    try:
+        from kiwi.skill_library.loader import load_skill_library
+
+        for skill in load_skill_library(enabled_only=False):
+            if skill.skill_file.is_file():
+                skill_files.append(skill.skill_file)
+    except Exception as exc:
+        logger.warning("Failed to enumerate library skills: %s", exc)
+
+    return skill_files

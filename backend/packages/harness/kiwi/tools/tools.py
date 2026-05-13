@@ -59,6 +59,16 @@ def get_available_tools(
     if not is_host_bash_allowed(config):
         tool_configs = [tool for tool in tool_configs if not _is_host_bash_tool(tool)]
 
+    # Ensure skill-dispatch handlers are discovered before tools resolve. Cached:
+    # subsequent calls return immediately. Failures are logged and don't prevent the
+    # rest of the tool list from being built.
+    try:
+        from kiwi.skill_dispatch import discover_handlers
+
+        discover_handlers()
+    except Exception:
+        logger.exception("Skill-dispatch handler discovery failed; continuing without in-process skill tools")
+
     loaded_tools_raw = [(cfg, resolve_variable(cfg.use, BaseTool)) for cfg in tool_configs]
 
     # Warn when the config ``name`` field and the tool object's ``.name``

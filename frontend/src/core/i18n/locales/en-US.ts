@@ -325,6 +325,7 @@ export const enUS: Translations = {
       appearance: "Appearance",
       memory: "Memory",
       tools: "Tools",
+      credentials: "Credentials",
       skills: "Skills",
       librarySkills: "Library Skills",
       notification: "Notification",
@@ -425,6 +426,32 @@ export const enUS: Translations = {
     tools: {
       title: "Tools",
       description: "Manage the configuration and enabled status of MCP tools.",
+    },
+    credentials: {
+      title: "Credentials",
+      description:
+        "Manage authentication for skills that need to log in to external services. Values are stored locally with restricted permissions and never shown back to you.",
+      emptyTitle: "No credentials needed",
+      emptyDescription:
+        "None of the enabled skills declared a credentials requirement. Skills that need authentication will appear here automatically.",
+      statusConfigured: "Configured",
+      statusUnconfigured: "Not configured",
+      rowDescriptionConfigured: "All {count} field(s) set.",
+      rowDescriptionUnconfigured: "{count} field(s) still missing.",
+      editTitle: "Edit credentials for {skill}",
+      editDescription:
+        "Only fields you fill in will be updated. Leave a field blank to keep its current value.",
+      fieldEmptyPlaceholder: "Enter value",
+      fieldAlreadySet:
+        "A value is already saved. Type a new one to replace it, or leave blank to keep it.",
+      showValue: "Show value",
+      hideValue: "Hide value",
+      updateSuccess: "Credentials updated",
+      clear: "Clear",
+      clearConfirmTitle: "Clear credentials for {skill}?",
+      clearConfirmDescription:
+        "Stored values and any cached session token will be removed. This cannot be undone.",
+      clearSuccess: "Credentials cleared",
     },
     skills: {
       title: "Agent Skills",

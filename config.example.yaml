@@ -336,6 +336,7 @@ tool_groups:
   - name: file:read
   - name: file:write
   - name: bash
+  - name: skill_dispatch
 
 # ============================================================================
 # Tools Configuration
@@ -459,6 +460,14 @@ tools:
   - name: bash
     group: bash
     use: kiwi.sandbox.tools:bash_tool
+
+  # Skill dispatch tool
+  # A single always-bound tool that routes calls to in-process handlers
+  # registered by skills via @register_skill_tool. Lets the skill-library
+  # ship many tools without paying per-tool token cost in the system prompt.
+  - name: invoke_skill_tool
+    group: skill_dispatch
+    use: kiwi.skill_dispatch:invoke_skill_tool
 
 # ============================================================================
 # Tool Search Configuration (Deferred Tool Loading)

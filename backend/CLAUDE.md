@@ -219,6 +219,7 @@ FastAPI application on port 8001 with health check at `GET /health`.
 | **Models** (`/api/models`) | `GET /` - list models; `GET /{name}` - model details |
 | **MCP** (`/api/mcp`) | `GET /config` - get config; `PUT /config` - update config (saves to extensions_config.json) |
 | **Skills** (`/api/skills`) | `GET /` - list skills; `GET /{name}` - details; `PUT /{name}` - update enabled; `POST /install` - install from .skill archive (accepts standard optional frontmatter like `version`, `author`, `compatibility`) |
+| **Credentials** (`/api/credentials`) | `GET /` - list registered credential slots with status (no raw values); `GET /{skill}` - one slot's status; `PUT /{skill}` - persist user-entered values (404 if skill has not declared a credentials schema); `DELETE /{skill}` - wipe values + token |
 | **Memory** (`/api/memory`) | `GET /` - memory data; `POST /reload` - force reload; `GET /config` - config; `GET /status` - config + data |
 | **Uploads** (`/api/threads/{id}/uploads`) | `POST /` - upload files (auto-converts PDF/PPT/Excel/Word); `GET /list` - list; `DELETE /{filename}` - delete |
 | **Threads** (`/api/threads/{id}`) | `DELETE /` - remove Kiwi-managed local thread data after LangGraph thread deletion; unexpected failures are logged server-side and return a generic 500 detail |
@@ -293,10 +294,47 @@ Proxied through nginx: `/api/langgraph/*` → LangGraph, all other `/api/*` → 
 ### Skills System (`packages/harness/kiwi/skills/`)
 
 - **Location**: `kiwi-flow/skills/{public,custom}/`
-- **Format**: Directory with `SKILL.md` (YAML frontmatter: name, description, license, allowed-tools)
+- **Format**: Directory with `SKILL.md` (YAML frontmatter: name, description, license, allowed-tools, optional `credentials:` block — see Credentials System)
 - **Loading**: `load_skills()` recursively scans `skills/{public,custom}` for `SKILL.md`, parses metadata, and reads enabled state from extensions_config.json
 - **Injection**: Enabled skills listed in agent system prompt with container paths
 - **Installation**: `POST /api/skills/install` extracts .skill ZIP archive to custom/ directory
+- **Note**: `parse_skill_file` ignores any `credentials:` block — that block is read by a separate parser (`kiwi.credentials.parse_skill_credentials`) so the schema can never leak into LLM-visible skill metadata.
+
+### Credentials System (`packages/harness/kiwi/credentials/`)
+
+Centralized store for skills that need to authenticate with external services. The LLM never reads credential values directly; it only sees that a skill needs auth and reacts to typed broker errors.
+
+- **On-disk storage**: Single JSON file at `$KIWI_FLOW_HOME/credentials.json`, mode `0o600`. Created and updated by `CredentialStore` with atomic temp-file + rename, file-locked via `fcntl.flock`. Lives outside every sandbox `/mnt/*` mapping (see `tests/test_credentials_isolation.py`).
+- **Schema declaration**: Skills declare credential fields in their `SKILL.md` frontmatter under `credentials:`. Example:
+  ```yaml
+  credentials:
+    fields:
+      - { name: api_key_id,     label: "API Key ID",        type: text     }
+      - { name: api_private_key, label: "Private Key (PEM)", type: textarea }
+  ```
+  Every declared field is required and treated as a secret — there is no per-field `required:`/`secret:` flag.
+- **Registry** (`registry.py`): Process-cached `dict[skill_name → CredentialSchema]` built by scanning every `SKILL.md` across `skills/public/`, `skills/custom/`, and `skill-library/`. Use `reload_credential_registry()` after installing a skill.
+- **Broker** (`broker.py`): Skill code's public API.
+  - `register_login(skill_name, login_fn)` — at module-load time. `login_fn(values: dict[str, str]) -> Token`.
+  - `get_token(skill_name) -> str` — returns a fresh token; runs `login_fn` on cache miss / expiry. Refresh skew: 60s.
+  - `invalidate_token(skill_name)` — call on upstream 401/403.
+  - `set_values` / `clear` / `status` — mostly used by the Gateway router.
+- **Decorator** (`@with_credentials("skill_name")`): Wraps a tool so its first arg becomes a `Creds` proxy with `.token` and `.invalidate()`. Catches typed broker errors and returns three distinct LLM-visible strings (`CredentialNotConfigured` → "open Settings, fill in: …"; `CredentialRejected` → "values were rejected, ask user to verify"; `NoLoginRegistered`/`UnknownSkill` → "internal bug"). Never echoes credential values into the result string.
+- **Error wording** (`error_messages.py`): `format_credential_error(skill_name, exc)` is the single source of truth for the LLM-visible strings. Both `@with_credentials` and the skill-dispatch dispatcher route through this function so a skill's error wording is identical regardless of which entry point invoked it.
+- **Gateway**: `GET /api/credentials`, `GET /api/credentials/{skill}`, `PUT /api/credentials/{skill}` (404 on unknown skill — enforces "user can only update declared slots, not create new ones"), `DELETE /api/credentials/{skill}`. Responses never include raw values.
+
+### Skill Dispatch System (`packages/harness/kiwi/skill_dispatch/`)
+
+In-process handlers for skill tools, fronted by a single LangChain tool. Lets the skill-library expose multiple tools per skill **without paying per-tool token cost in the system prompt** — only `invoke_skill_tool` is bound.
+
+- **Single bound tool**: `kiwi.skill_dispatch:invoke_skill_tool(skill: str, tool: str, args: dict) -> str` is wired in `config.yaml` under the `skill_dispatch` group. Description in the system prompt: *"Invoke a tool offered by a skill. Use this after discovering a skill via `skill_search` and reading its `SKILL.md` to learn what tools that skill exposes."*
+- **Per-skill `handlers.py`**: skills that want in-process dispatch ship a `handlers.py` next to their `SKILL.md`. Handlers are decorated with `@register_skill_tool(skill="...", tool="...")`; the decorator runs at import time and inserts the handler into a process-global registry.
+- **Discovery** (`registry.discover_handlers`): scans every `SKILL.md` across the three skill roots (`skills/public/`, `skills/custom/`, `skill-library/`), looks for a sibling `handlers.py`, and dynamically imports it via `importlib.util`. Failures are logged and skipped; one broken skill doesn't break others or the agent. The dispatcher's first invocation triggers discovery via `kiwi.tools.tools.get_available_tools`; the gateway lifespan also fires it eagerly at startup.
+- **Error translation in the dispatcher**: broker exceptions raised by a handler are translated using `kiwi.credentials.format_credential_error` so the LLM sees the same wording it would from `@with_credentials`. To signal arg-shape errors, handlers raise `kiwi.skill_dispatch.SkillToolArgumentError` (a `ValueError` subclass) — the dispatcher converts that to `"Skill tool 'X.Y' rejected arguments: …"`. Plain `ValueError` is **not** treated as arg validation: deep-stack errors (e.g. `int('abc')` on upstream data) flow through the generic-exception branch as `"Skill tool 'X.Y' failed: <ExceptionType>: <message>"` so a buggy handler can't crash the agent and a real bug can't be misrepresented as user error.
+- **Disabled-skill rejection**: the dispatcher checks `extensions_config.json` enabled state before invoking a handler. A skill toggled off in Settings → Skills returns `"Skill 'X' is currently disabled. …"` to the agent, even if its handlers were registered at startup. Skills that have no SKILL.md (test-only registrations) default to enabled.
+- **Argument isolation**: handlers receive a shallow copy of the caller's `args` dict, so a buggy handler that mutates its input cannot leak the mutation back into LangGraph's tool-call tracing.
+- **Credentials path**: handlers call `broker.get_values(skill_name)` directly. Credentials never enter a subprocess, never become env vars — restoring the LLM-isolation guarantee that the previous env-var bridge could not enforce against compound bash commands.
+- **Reference implementation**: the kalshi skill (`skill-library/kalshi/handlers.py` + `kalshi_lib.py`) is the first migrated skill; see it for the canonical handler shape (validate args, build a client, return a JSON string, let `KalshiAPIError(401)` translate to `CredentialRejected`).
 
 ### Skill Library (`packages/harness/kiwi/skill_library/`)
 

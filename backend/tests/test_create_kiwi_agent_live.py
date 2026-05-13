@@ -14,9 +14,7 @@ import pytest
 from langchain_core.tools import tool
 
 requires_llm = pytest.mark.skipif(
-    os.getenv("CI", "").lower() in ("true", "1")
-    or not os.getenv("OPENAI_API_KEY")
-    or not os.getenv("RUN_LIVE_LLM_TESTS"),
+    os.getenv("CI", "").lower() in ("true", "1") or not os.getenv("OPENAI_API_KEY") or not os.getenv("RUN_LIVE_LLM_TESTS"),
     reason="Live-LLM tests are opt-in: set RUN_LIVE_LLM_TESTS=1 (and OPENAI_API_KEY) outside CI to enable",
 )
 

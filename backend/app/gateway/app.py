@@ -12,6 +12,7 @@ from app.gateway.routers import (
     artifacts,
     assistants_compat,
     channels,
+    credentials,
     library_skills,
     mcp,
     memory,
@@ -54,6 +55,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         raise RuntimeError(error_msg) from e
     config = get_gateway_config()
     logger.info(f"Starting API Gateway on {config.host}:{config.port}")
+
+    # Import every skill's handlers.py so @register_skill_tool decorators run
+    # and the dispatcher can route to in-process handlers.
+    try:
+        from kiwi.skill_dispatch import discover_handlers
+
+        discover_handlers()
+    except Exception:
+        logger.exception("Skill-dispatch handler discovery failed; continuing without in-process skill tools")
 
     # Initialize LangGraph runtime components (StreamBridge, RunManager, checkpointer, store)
     async with langgraph_runtime(app):
@@ -168,6 +178,10 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
                 "description": "Manage IM channel integrations (Feishu, Slack, Telegram)",
             },
             {
+                "name": "credentials",
+                "description": "Centralized credential store for skills that need authentication",
+            },
+            {
                 "name": "assistants-compat",
                 "description": "LangGraph Platform-compatible assistants API (stub)",
             },
@@ -217,6 +231,9 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
 
     # Channels API is mounted at /api/channels
     app.include_router(channels.router)
+
+    # Credentials API is mounted at /api/credentials
+    app.include_router(credentials.router)
 
     # Assistants compatibility API (LangGraph Platform stub)
     app.include_router(assistants_compat.router)

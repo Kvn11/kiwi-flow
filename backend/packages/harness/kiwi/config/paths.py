@@ -58,6 +58,7 @@ class Paths:
         {base_dir}/
         ├── memory.json
         ├── USER.md          <-- global user profile (injected into all agents)
+        ├── credentials.json <-- skill credentials (chmod 0600, never mounted into sandbox)
         ├── agents/
         │   └── {agent_name}/
         │       ├── config.yaml
@@ -120,6 +121,17 @@ class Paths:
     def user_md_file(self) -> Path:
         """Path to the global user profile file: `{base_dir}/USER.md`."""
         return self.base_dir / "USER.md"
+
+    @property
+    def credentials_file(self) -> Path:
+        """Path to the skill credentials file: `{base_dir}/credentials.json`.
+
+        This file holds per-skill values (user input) and tokens (skill-managed)
+        for skills that need authentication. It is created with mode 0o600 by
+        the credentials store and lives outside every sandbox `/mnt/*` mapping
+        so the LLM cannot reach it via virtual paths.
+        """
+        return self.base_dir / "credentials.json"
 
     @property
     def agents_dir(self) -> Path:

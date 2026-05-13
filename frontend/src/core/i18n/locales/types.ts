@@ -254,6 +254,7 @@ export interface Translations {
       appearance: string;
       memory: string;
       tools: string;
+      credentials: string;
       skills: string;
       librarySkills: string;
       notification: string;
@@ -347,6 +348,27 @@ export interface Translations {
     tools: {
       title: string;
       description: string;
+    };
+    credentials: {
+      title: string;
+      description: string;
+      emptyTitle: string;
+      emptyDescription: string;
+      statusConfigured: string;
+      statusUnconfigured: string;
+      rowDescriptionConfigured: string;
+      rowDescriptionUnconfigured: string;
+      editTitle: string;
+      editDescription: string;
+      fieldEmptyPlaceholder: string;
+      fieldAlreadySet: string;
+      showValue: string;
+      hideValue: string;
+      updateSuccess: string;
+      clear: string;
+      clearConfirmTitle: string;
+      clearConfirmDescription: string;
+      clearSuccess: string;
     };
     skills: {
       title: string;

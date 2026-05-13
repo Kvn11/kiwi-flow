@@ -52,6 +52,7 @@ The frontend is a stateful chat application. Users create **threads** (conversat
   - `settings/` — User preferences in localStorage
   - `memory/` — Persistent user memory system
   - `skills/` — Skills installation and management
+  - `credentials/` — Credentials read/write API + TanStack Query hooks. Backed by the `/api/credentials` Gateway endpoints; never receives raw values from the backend (write-only for secrets).
   - `messages/` — Message processing and transformation
   - `mcp/` — Model Context Protocol integration
   - `models/` — TypeScript types and data models
